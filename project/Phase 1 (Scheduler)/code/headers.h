@@ -1,3 +1,6 @@
+#ifndef HEADERS
+#define HEADERS
+
 #include <stdio.h>      //if you don't use scanf/printf change this include
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -13,24 +16,31 @@
 #include <string.h>
 
 typedef short bool;
+
 #define true 1
 #define false 0
 
 #define SHKEY 300
-#define maxProcesses 1000
+
+typedef struct
+{
+    int arrivaltime;
+    int priority;
+    int runningtime;
+    int id;
+
+} processData;
+
+#define MAX_SIZE 1000
+
+typedef enum {PRIORITIZE_TIME , PRIORITIZE_PRIORITY } PriorityPurpose; 
 
 ///==============================
 //don't mess with this variable//
 int * shmaddr;                 //
 //===============================
 
-typedef struct 
-{
-    int arrivaltime;
-    int priority;
-    int runningtime;
-    int id;
-} processData;
+
 
 int getClk()
 {
@@ -73,3 +83,4 @@ void destroyClk(bool terminateAll)
     }
 }
 
+#endif
