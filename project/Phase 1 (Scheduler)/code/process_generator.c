@@ -64,7 +64,7 @@ int main(int argc, char * argv[])
         p->runningtime = atoi(token3);
         char * token4 = strtok(NULL, "\t");
         p->priority = atoi(token4);
-        printf("%d %d %d %d \n", p->id, p->arrivaltime, p->runningtime, p->priority);
+        //printf("%d %d %d %d \n", p->id, p->arrivaltime, p->runningtime, p->priority);
         inserted = enqueue(processQueue, p);
         if (!inserted)
             printf("Reached max number of processes!"); 
@@ -73,24 +73,25 @@ int main(int argc, char * argv[])
     bool sentAllProcesses = false;
     printf("Size of queue: %d \n", processQueue->size);
     int counter = 0;
-    //while (!sentAllProcesses)
-    //{
-        //int now = getClk();
-        //while (now < processQueue.front()->arrivalTime) //send to scheduler
-        //{
-        //now = getClk();
-        //}
-        //if we reach this point, then arrival time is now
-        //processData * processToBeSent = processQueue.dequeue();
-        //if (processToBeSent != NULL)
-        //{
-        //send to scheduler
-        //counter++;
-        //}
-        //if (counter == numProcesses)
-        //sentAllProcesses = true;
-
-    //}
+    int now;
+    int sizeOfQueue = processQueue->size;
+    for (int i = 0; i < sizeOfQueue; i++)
+    {
+        now = getClk();
+        while (now < processQueue->front->data->arrivaltime)
+        {
+            now = getClk();
+        }
+        printf("Now send process number %d at time %d \n", i,getClk());
+        //if we reach this point, then we got to/passed the arrival time of the process
+        processData * processToBeSent = dequeue(processQueue);
+        if (processToBeSent != NULL)
+        {
+            //send to scheduler
+            printf("Data to be sent %d %d %d %d \n", processToBeSent->id, processToBeSent->arrivaltime, processToBeSent->runningtime, processToBeSent->priority);
+        }
+        printf("-------------------- \n");
+    }
     // 7. Clear clock resources
     destroyClk(true);
     clockPID = wait(&stat_loc);
