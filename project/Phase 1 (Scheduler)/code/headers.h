@@ -24,17 +24,30 @@ typedef short bool;
 
 typedef struct
 {
-    int arrivaltime;
-    int priority;
-    int runningtime;
     int id;
-
+    int arrivalTime;
+    int runningTime; 
+    int priority;
+    int memorySize; 
 } processData;
+
+typedef struct 
+{
+    int id;
+    int arrivalTime;
+    int runningTime; 
+    int priority;
+    int memorySize; 
+
+    int remainingTime;
+    int waitingTime; 
+    int lastBlockingTime;
+} PCBEntry; 
 
 #define MAX_SIZE 1000
 
 typedef enum {PRIORITIZE_TIME , PRIORITIZE_PRIORITY } PriorityPurpose; 
-
+typedef enum {HPF,STRN,RR} schedulingAlgorithm;
 ///==============================
 //don't mess with this variable//
 int * shmaddr;                 //

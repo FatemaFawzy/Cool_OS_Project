@@ -1,22 +1,12 @@
 #include <string.h>
-#include "../Phase 1 (Scheduler)/code/headers.h"
+#include "headers.h"
 #define DEFAULT_HASH_SIZE 10
-typedef struct 
-{
-    int arrivalTime;
-    int priority;
-    int runningTime;
-    // int remainingTime;
-    // int waitingTime; 
-    // int cummulativeRunningTime;    
-    // int programCounter;                                                                           
-    int id;
-} processData; 
+
 
 
 struct HashNode
 {
-    processData* value;
+    PCBEntry* value;
     struct HashNode* next;
 };
 
@@ -36,6 +26,6 @@ bool isEmpty(struct Hash* self);
 unsigned int hash(struct Hash* self,unsigned int key);
 unsigned int hashFunction(unsigned int key);
 // Operation functions
-processData* hashFind(struct Hash*self, unsigned int key);
-bool hashInsert(struct Hash* self, unsigned int key,processData* process);
-processData* hashRemove(struct Hash* self,unsigned int key);
+PCBEntry* hashFind(struct Hash*self, unsigned int key);
+bool hashInsert(struct Hash* self, unsigned int key,PCBEntry* process);
+PCBEntry* hashRemove(struct Hash* self,unsigned int key);

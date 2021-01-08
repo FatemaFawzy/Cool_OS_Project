@@ -73,7 +73,7 @@ unsigned int hashFunction(unsigned int key)
     return key;
 }
 // Operation functions
-processData* hashFind(struct Hash*self, unsigned int key)
+PCBEntry* hashFind(struct Hash*self, unsigned int key)
 {
     int i = hash(self,key);
     struct HashNode* root= self->table[i] ;
@@ -85,7 +85,7 @@ processData* hashFind(struct Hash*self, unsigned int key)
     }
     return NULL;
 }
-bool hashInsert(struct Hash*self, unsigned int key,processData* process)
+bool hashInsert(struct Hash*self, unsigned int key,PCBEntry* process)
 {
     if(self->count == self->size)
         return false;
@@ -103,10 +103,11 @@ bool hashInsert(struct Hash*self, unsigned int key,processData* process)
 
     while(root->next != NULL) root = root->next;
     root->next = (struct HashNode*) malloc(sizeof(struct HashNode));
+    (root->next)->value = process;
     self->count++;
     return true;
 }
-processData* hashRemove(struct Hash* self,unsigned int key)
+PCBEntry* hashRemove(struct Hash* self,unsigned int key)
 {
     if(self->count == 0) return false;
 
@@ -121,11 +122,16 @@ processData* hashRemove(struct Hash* self,unsigned int key)
         {
             if(prev != NULL)
                 prev->next = root->next;
-            processData* process = root->value;
+
+            if(self->table[i] == root)
+                self->table[i] = root->next;
+            PCBEntry* process = root->value;
             self->count--;
             free(root);
+            root = NULL;
             return process;
         }
+        prev = root;
         root = root->next;
     }
     return NULL;
