@@ -1,5 +1,5 @@
 #include "headers.h"
-
+#include "queue.c"
 void clearResources(int);
 
 int main(int argc, char * argv[])
@@ -27,15 +27,23 @@ int main(int argc, char * argv[])
         scanf("%d", &quantum);  
     }
     // 3. Initiate and create the scheduler and clock processes.
-
+    int clockPID = fork(), stat_loc;
+    
+    if (clockPID == -1)
+  	    perror("error in fork");	
+    else if (clockPID == 0)
+    {
+	   execl("/home/mariam/OS_Project/Cool_OS_Project/project/Phase 1 (Scheduler)/code/clk.o", "clk.o", NULL);
+    }
     // 4. Use this function after creating the clock process to initialize clock
-    //initClk();
+    initClk();
     // To get time use this
-    //int x = getClk();
-    //printf("current time is %d\n", x);
+    int x = getClk();
+    printf("current time is %d\n", x);
     // TODO Generation Main Loop
     // 5. Create a data structure for processes and provide it with its parameters.
-    //Queue processQueue;
+    struct Queue* processQueue = createQueue();
+    printf("1-Size of queue: %d \n", processQueue->size);
     bool inserted = false;
     processData *p;
     char * str_operation;
@@ -56,41 +64,40 @@ int main(int argc, char * argv[])
         p->runningtime = atoi(token3);
         char * token4 = strtok(NULL, "\t");
         p->priority = atoi(token4);
-        printf("%d %d %d %d \n", p->id, p->arrivaltime, p->runningtime, p->priority);
+        //printf("%d %d %d %d \n", p->id, p->arrivaltime, p->runningtime, p->priority);
+        inserted = enqueue(processQueue, p);
+        if (!inserted)
+            printf("Reached max number of processes!"); 
     }
-    //inserted = processQueue.enqueue(&p);
-    //if (!inserted)
-    //{
-    //printf("Reached max number of processes!");
-    //}
     // 6. Send the information to the scheduler at the appropriate time.
     bool sentAllProcesses = false;
-    //int numProcesses = processQueue.size;
+    printf("Size of queue: %d \n", processQueue->size);
     int counter = 0;
-    //while (!sentAllProcesses)
-    //{
-        //int now = getClk();
-        //while (now < processQueue.front()->arrivalTime) //send to scheduler
-        //{
-        //now = getClk();
-        //}
-        //if we reach this point, then arrival time is now
-        //processData * processToBeSent = processQueue.dequeue();
-        //if (processToBeSent != NULL)
-        //{
-        //send to scheduler
-        //counter++;
-        //}
-        //if (counter == numProcesses)
-        //sentAllProcesses = true;
-
-    //}
+    int now;
+    int sizeOfQueue = processQueue->size;
+    for (int i = 0; i < sizeOfQueue; i++)
+    {
+        now = getClk();
+        while (now < processQueue->front->data->arrivaltime)
+        {
+            now = getClk();
+        }
+        printf("Now send process number %d at time %d \n", i,getClk());
+        //if we reach this point, then we got to/passed the arrival time of the process
+        processData * processToBeSent = dequeue(processQueue);
+        if (processToBeSent != NULL)
+        {
+            //send to scheduler
+            printf("Data to be sent %d %d %d %d \n", processToBeSent->id, processToBeSent->arrivaltime, processToBeSent->runningtime, processToBeSent->priority);
+        }
+        printf("-------------------- \n");
+    }
     // 7. Clear clock resources
-    //destroyClk(true);
+    destroyClk(true);
+    clockPID = wait(&stat_loc);
 }
 
 void clearResources(int signum)
 {
     //TODO Clears all resources in case of interruption
 }
-

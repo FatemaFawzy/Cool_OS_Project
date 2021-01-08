@@ -4,10 +4,6 @@
 
 struct Queue;
 
-struct Node {
-    processData* data;
-    struct Node* next;
-};
 
 //Queue functions
 struct Queue* createQueue();

@@ -15,6 +15,7 @@
 #include <signal.h>
 #include <string.h>
 
+
 typedef short bool;
 
 #define true 1
@@ -43,6 +44,11 @@ typedef struct
     int waitingTime; 
     int lastBlockingTime;
 } PCBEntry; 
+
+struct Node {
+    processData* data;
+    struct Node* next;
+};
 
 #define MAX_SIZE 1000
 

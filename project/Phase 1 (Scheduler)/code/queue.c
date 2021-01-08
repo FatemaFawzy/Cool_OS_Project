@@ -12,6 +12,7 @@ struct Queue* createQueue(){
     struct Queue* queue= (struct Queue*) malloc(sizeof(struct Queue));
     queue->front= NULL;
     queue->rear=NULL;
+    queue->size = 0;
     return queue;
 
 }
