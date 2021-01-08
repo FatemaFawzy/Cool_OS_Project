@@ -62,7 +62,6 @@ int main(int argc, char * argv[])
     //if (!inserted)
     //{
     //printf("Reached max number of processes!");
-    //break;
     //}
     // 6. Send the information to the scheduler at the appropriate time.
     bool sentAllProcesses = false;
