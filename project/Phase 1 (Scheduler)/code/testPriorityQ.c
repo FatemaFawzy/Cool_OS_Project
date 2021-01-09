@@ -15,8 +15,8 @@ int main(int argc, char * argv[])
     enqueue(priorityQ,&process3);
     enqueue(priorityQ,&process4);
 
-    printf("%d\n",dequeue(priorityQ)->arrivaltime);
-    printf("%d\n",dequeue(priorityQ)->arrivaltime);
-    printf("%d\n",dequeue(priorityQ)->arrivaltime);
-    printf("%d\n",dequeue(priorityQ)->arrivaltime);
+    printf("%d\n",dequeue(priorityQ)->arrivalTime);
+    printf("%d\n",dequeue(priorityQ)->arrivalTime);
+    printf("%d\n",dequeue(priorityQ)->arrivalTime);
+    printf("%d\n",dequeue(priorityQ)->arrivalTime);
 }

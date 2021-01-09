@@ -59,12 +59,12 @@ int main(int argc, char * argv[])
             continue;
         p->id = atoi(token);
         char * token2 = strtok(NULL, "\t");
-        p->arrivaltime = atoi(token2);
+        p->arrivalTime = atoi(token2);
         char * token3 = strtok(NULL, "\t");
-        p->runningtime = atoi(token3);
+        p->runningTime = atoi(token3);
         char * token4 = strtok(NULL, "\t");
         p->priority = atoi(token4);
-        //printf("%d %d %d %d \n", p->id, p->arrivaltime, p->runningtime, p->priority);
+        //printf("%d %d %d %d \n", p->id, p->arrivalTime, p->runningTime, p->priority);
         inserted = enqueue(processQueue, p);
         if (!inserted)
             printf("Reached max number of processes!"); 
@@ -78,7 +78,7 @@ int main(int argc, char * argv[])
     for (int i = 0; i < sizeOfQueue; i++)
     {
         now = getClk();
-        while (now < processQueue->front->data->arrivaltime)
+        while (now < processQueue->front->data->arrivalTime)
         {
             now = getClk();
         }
@@ -88,7 +88,7 @@ int main(int argc, char * argv[])
         if (processToBeSent != NULL)
         {
             //send to scheduler
-            printf("Data to be sent %d %d %d %d \n", processToBeSent->id, processToBeSent->arrivaltime, processToBeSent->runningtime, processToBeSent->priority);
+            printf("Data to be sent %d %d %d %d \n", processToBeSent->id, processToBeSent->arrivalTime, processToBeSent->runningTime, processToBeSent->priority);
         }
         printf("-------------------- \n");
     }
