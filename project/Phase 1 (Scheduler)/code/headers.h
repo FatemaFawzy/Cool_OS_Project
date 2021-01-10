@@ -30,20 +30,12 @@ typedef struct
     int runningTime; 
     int priority;
     int memorySize; 
-} processData;
-
-typedef struct 
-{
-    int id;
-    int arrivalTime;
-    int runningTime; 
-    int priority;
-    int memorySize; 
 
     int remainingTime;
     int waitingTime; 
     int lastBlockingTime;
-} PCBEntry; 
+} processData;
+
 
 struct Node {
     processData* data;

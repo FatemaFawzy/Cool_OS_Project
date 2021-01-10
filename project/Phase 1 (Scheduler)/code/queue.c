@@ -18,7 +18,7 @@ struct Queue* createQueue(){
 }
 
 //read data from the front of the queue
-processData* front(struct Queue* self){
+processData* frontQueue(struct Queue* self){
 
     if(self->front==NULL) return NULL;
     else {
@@ -28,10 +28,10 @@ processData* front(struct Queue* self){
 }
 
 //add data to queue
-bool enqueue(struct Queue* self, processData* d){
+bool enqueueQueue(struct Queue* self, processData* d){
 
     //if maximum queue capacity is reached, don't enqueue
-    if(isFull(self)) return false;
+    if(isFullQueue(self)) return false;
 
     else {
         //create a new node and insert the data in it
@@ -57,7 +57,7 @@ bool enqueue(struct Queue* self, processData* d){
 }
 
 //remove data from queue front
-processData* dequeue(struct Queue* self){
+processData* dequeueQueue(struct Queue* self){
 
     if(self->front == NULL) return NULL;
     else {
@@ -82,7 +82,7 @@ processData* dequeue(struct Queue* self){
 }
 
 //check if queue is full
-bool isFull(struct Queue* self){
+bool isFullQueue(struct Queue* self){
 
     if(self->size ==MAX_SIZE) return true;
     else return false;
@@ -90,7 +90,7 @@ bool isFull(struct Queue* self){
 }
 
 //check if queue is empty
-bool isEmpty(struct Queue* self){
+bool isEmptyQueue(struct Queue* self){
 
     if(self->size ==0) return true;
     else return false;

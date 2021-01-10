@@ -32,11 +32,11 @@ void destroyHash(struct Hash* self)
     }
 }
 // Size functions
-int size(struct Hash* self)
+int sizeHash(struct Hash* self)
 {
     return self->size;
 }
-bool resize(struct Hash* self,int size)
+bool resizeHash(struct Hash* self,int size)
 {
     if(size >MAX_SIZE)
         return false;
@@ -52,11 +52,11 @@ bool resize(struct Hash* self,int size)
     return true;
 
 }
-bool isFull(struct Hash* self)
+bool isFullHash(struct Hash* self)
 {
     return self->size == self->count;
 }
-bool isEmpty(struct Hash* self)
+bool isEmptyHash(struct Hash* self)
 {
     return self->count == 0;
 }
@@ -73,7 +73,7 @@ unsigned int hashFunction(unsigned int key)
     return key;
 }
 // Operation functions
-PCBEntry* hashFind(struct Hash*self, unsigned int key)
+processData* hashFind(struct Hash*self, unsigned int key)
 {
     int i = hash(self,key);
     struct HashNode* root= self->table[i] ;
@@ -85,7 +85,7 @@ PCBEntry* hashFind(struct Hash*self, unsigned int key)
     }
     return NULL;
 }
-bool hashInsert(struct Hash*self, unsigned int key,PCBEntry* process)
+bool hashInsert(struct Hash*self, unsigned int key,processData* process)
 {
     if(self->count == self->size)
         return false;
@@ -107,7 +107,7 @@ bool hashInsert(struct Hash*self, unsigned int key,PCBEntry* process)
     self->count++;
     return true;
 }
-PCBEntry* hashRemove(struct Hash* self,unsigned int key)
+processData* hashRemove(struct Hash* self,unsigned int key)
 {
     if(self->count == 0) return false;
 
@@ -125,7 +125,7 @@ PCBEntry* hashRemove(struct Hash* self,unsigned int key)
 
             if(self->table[i] == root)
                 self->table[i] = root->next;
-            PCBEntry* process = root->value;
+            processData* process = root->value;
             self->count--;
             free(root);
             root = NULL;

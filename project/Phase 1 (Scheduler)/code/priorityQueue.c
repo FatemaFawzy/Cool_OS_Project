@@ -2,7 +2,7 @@
 
 // Source file
 struct PriorityQueue  {
-   PCBEntry* data[MAX_SIZE];
+   processData* data[MAX_SIZE];
    int size;
    PriorityPurpose purpose; 
 };
@@ -36,7 +36,7 @@ void destroyPriorityQueue(struct PriorityQueue* queue) {
 
 //Helper Private Functions for the priority queue
 
-void minHeapify (PCBEntry* data[] , int i, int N,PriorityPurpose purpose)
+void minHeapify (processData* data[] , int i, int N,PriorityPurpose purpose)
 {
 int left  = 2*i;
 int right = 2*i+1;
@@ -51,7 +51,7 @@ if(right <= N && data[right]->remainingTime < data[smallest]->remainingTime )
     smallest = right;
 if(smallest != i)
 {
-    PCBEntry* tempProcess=data[ i ];
+    processData* tempProcess=data[ i ];
     data[ i ]=data[ smallest ];
     data[ smallest ]=tempProcess;
     minHeapify (data, smallest,N,purpose);
@@ -68,7 +68,7 @@ if(right <= N && data[right]->priority < data[smallest]->priority )
 if(smallest != i)
 {
     //Swap
-    PCBEntry* tempProcess=data[ i ];
+    processData* tempProcess=data[ i ];
     data[ i ]=data[ smallest ];
     data[ smallest ]=tempProcess;
     minHeapify (data, smallest,N,purpose);
@@ -76,7 +76,7 @@ if(smallest != i)
 }
 }
 
-bool decreaseValue(PCBEntry* data[] , int i,PCBEntry* process, PriorityPurpose purpose)
+bool decreaseValue(processData* data[] , int i,processData* process, PriorityPurpose purpose)
 {
 
     if(purpose==PRIORITIZE_TIME)
@@ -87,7 +87,7 @@ bool decreaseValue(PCBEntry* data[] , int i,PCBEntry* process, PriorityPurpose p
         while( i > 1 && data[ i/2 ]->remainingTime > data[ i ]->remainingTime)
         {
             //Swap
-            PCBEntry* tempProcess=data[ i ];
+            processData* tempProcess=data[ i ];
             data[ i ]=data[ i/2 ];
             data[ i/2 ]=tempProcess;
             i = i/2;
@@ -100,7 +100,7 @@ bool decreaseValue(PCBEntry* data[] , int i,PCBEntry* process, PriorityPurpose p
         while( i > 1 && data[ i/2 ]->priority > data[ i ]->priority)
         {
             //Swap
-            PCBEntry* tempProcess=data[ i ];
+            processData* tempProcess=data[ i ];
             data[ i ]=data[ i/2 ];
             data[ i/2 ]=tempProcess;
             i = i/2;
@@ -109,7 +109,7 @@ bool decreaseValue(PCBEntry* data[] , int i,PCBEntry* process, PriorityPurpose p
 }
 
 // Equivalent to "Point::x()" in C++ version
-bool enqueue(struct PriorityQueue* self,PCBEntry* process) {
+bool enqueuePriorityQueue(struct PriorityQueue* self,processData* process) {
     if(self->size==MAX_SIZE) return false;
     if(self->size==0)
     {
@@ -124,10 +124,10 @@ bool enqueue(struct PriorityQueue* self,PCBEntry* process) {
 }
 
 // Equivalent to "Point::y()" in C++ version
-PCBEntry* dequeue(struct PriorityQueue* self) {
+processData* dequeuePriorityQueue(struct PriorityQueue* self) {
     if(self->size == 0)
         return NULL;
-    PCBEntry* dequeuedProcess = self->data[1];
+    processData* dequeuedProcess = self->data[1];
     self->data[1] =self->data[self->size];
     self->data[self->size]=NULL;
     self->size -= 1;
@@ -135,7 +135,7 @@ PCBEntry* dequeue(struct PriorityQueue* self) {
     return dequeuedProcess;
 }
 
-PCBEntry* front(struct PriorityQueue* self) {
+processData* frontPriorityQueue(struct PriorityQueue* self) {
     if(self->size==0) return NULL;
     return self->data[1];
 }
@@ -145,7 +145,7 @@ bool isEmptyPriorityQueue(struct PriorityQueue* self)
     return self->size==0;
 }
 
-// bool isFull(struct PriorityQueue* self)
-// {
-//     return self->size==MAX_SIZE;
-// }
+ bool isFullPriorityQueue(struct PriorityQueue* self)
+{
+    return self->size==MAX_SIZE;
+}
