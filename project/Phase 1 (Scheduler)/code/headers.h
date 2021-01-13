@@ -44,7 +44,8 @@ struct Node {
 
 #define MAX_SIZE 1000
 
-typedef enum {PRIORITIZE_TIME , PRIORITIZE_PRIORITY } PriorityPurpose; 
+typedef enum {PRIORITIZE_TIME,PRIORITIZE_PRIORITY} PriorityPurpose; 
+typedef enum {STARTED,RESUMED,STOPPED,FINISHED} ProcessState; 
 typedef enum {HPF,STRN,RR} schedulingAlgorithm;
 ///==============================
 //don't mess with this variable//
@@ -99,6 +100,13 @@ char* concat(const char *s1, const char *s2)
     char *result = malloc(strlen(s1) + strlen(s2) + 1); // +1 for the null-terminator
     strcpy(result, s1);
     strcat(result, s2);
+    return result;
+}
+
+int power(int base, int exp)
+{
+    int result = 1;
+    while(exp) { result *= base; exp--; }
     return result;
 }
 

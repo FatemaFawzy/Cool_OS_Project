@@ -12,12 +12,6 @@ typedef struct{
 }Memory;
 
 //helper private functions 
-int power(int base, int exp)
-{
-    int result = 1;
-    while(exp) { result *= base; exp--; }
-    return result;
-}
 
 // function to evaluate Binary Logarithm
 unsigned int logarithm2(int n) {
