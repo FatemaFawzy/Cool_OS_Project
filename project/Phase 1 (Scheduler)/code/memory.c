@@ -6,8 +6,9 @@
 
 // Source file
 typedef struct{
-   int* freeMemory[11];
-   MemoryMap *map; 
+    int* freeMemory[11];
+    MemoryMap *map; 
+    FILE *memoryFilePtr;
 }Memory;
 
 //helper private functions 
@@ -67,6 +68,7 @@ void Memory__init( Memory* self) {
     self->freeMemory[10][0]=FREE;
     
     self->map=createMemoryMap(100);
+    self->memoryFilePtr = fopen("memory.log", "w");
  }
 
 // Allocation + initialization (equivalent to "new Memory(x, y)")
@@ -79,6 +81,8 @@ void Memory__init( Memory* self) {
 // Deor (without deallocation)
 void resetMemory( Memory* self) {
     destroyMemoryMap(self->map);
+    //Close the file that's used for writing to memory.log
+    fclose(self->memoryFilePtr);
 }
 
 // Deor + deallocation (equivalent to "delete point")
@@ -170,6 +174,36 @@ bool deallocate( Memory* self,int processID)
     free(address);
     deallocatePrivate(self,allocationStart,allocationEnd);
     return true;
+}
+
+//This function should be called after allocation and before deallocation
+void memoryLog(Memory* self,int processID,int currentTime,bool IamAllocating)
+{
+    MemoryLocation* address=memoryMapFind(self->map,processID);
+    char*I=IamAllocating?" allocated ":" freed ";
+    char*allocationMessage,*tempStr1,*tempStr2,*tempStr3,*tempStr4,*tempStr5,*tempStr6;
+
+    char*tempStr12,*tempStr34,*tempStr56,*tempStr1234;
+    char currentTimeString[16],sizeString[16],processIDString[16],startAddressString[16],endAddressString[16];
+    snprintf(currentTimeString, sizeof(currentTimeString), "%d", currentTime);
+    snprintf(sizeString, sizeof(sizeString), "%d", address->endAddress-address->startAddress+1);
+    snprintf(processIDString, sizeof(processIDString), "%d", address->id);
+    snprintf(startAddressString, sizeof(startAddressString), "%d", address->startAddress);
+    snprintf(endAddressString, sizeof(endAddressString), "%d", address->endAddress);
+
+    tempStr1=concat("At time ",currentTimeString);
+    tempStr2=concat(I,sizeString);
+    tempStr12=concat(tempStr1,tempStr2);free(tempStr1);free(tempStr2);
+    tempStr3=concat(" bytes for process ",processIDString);
+    tempStr4=concat(" from ",startAddressString);
+    tempStr34=concat(tempStr3,tempStr4);free(tempStr3);free(tempStr4);
+    tempStr5=concat(" to ",endAddressString);
+    tempStr6=concat(" ","\n");
+    tempStr56=concat(tempStr5,tempStr6);free(tempStr5);free(tempStr6);
+    tempStr1234=concat(tempStr12,tempStr34);free(tempStr12);free(tempStr34);
+    allocationMessage=concat(tempStr1234,tempStr56);free(tempStr1234);free(tempStr56);
+
+    fputs(allocationMessage, self->memoryFilePtr);free(allocationMessage);
 }
 
 
