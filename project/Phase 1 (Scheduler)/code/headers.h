@@ -42,12 +42,6 @@ struct Node {
     struct Node* next;
 };
 
-typedef struct 
-{
-    long mtype;
-    processData* newProcess;
-} msgbuff;
-
 union Semun
 {
     int val;               /* value for SETVAL */
@@ -75,6 +69,12 @@ typedef struct
     int numProcesses;
 } schedulingType;
 
+typedef struct 
+{
+    long mtype;
+    schedulingType initialSchedulingData;
+    
+} msgbuff;
 
 int getClk()
 {

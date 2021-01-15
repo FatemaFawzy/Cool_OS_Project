@@ -3,7 +3,7 @@
 #include "queue.c"
 #define PROCESSES_NUMBER 5
 
-int shmid, shmid2;
+int shmid;
 struct Hash* PCB;
 bool finish = false;
 
@@ -185,15 +185,18 @@ processData receiveNewProcess(int shmid)
     }
     return *shmaddr;
 }
-schedulingType receiveSchedulingType(int shmid2)
+schedulingType receiveSchedulingType(int INITIAL_MSG_Q_ID)
 {
-    schedulingType *shmaddr = shmat(shmid2, (void *)0, 0);
-    if (shmaddr == -1)
-    {
-        perror("Error in attach in reader");
-        exit(-1);
-    }
-    return *shmaddr;
+    msgbuff messageRecieved;
+
+    //recieve only the messages of 50 message type
+    int rec_val = msgrcv(INITIAL_MSG_Q_ID, &messageRecieved, sizeof(messageRecieved.initialSchedulingData), 50, !IPC_NOWAIT);
+
+    //Handle unexpected errors by notifying the user
+    if (rec_val == -1)
+        perror("Error in receiving the initial data from the process generator.");
+
+    return messageRecieved.initialSchedulingData;
 }
 void newProcessArrived(int signum)
 {
@@ -222,13 +225,21 @@ int main(int argc, char * argv[])
 {
     signal(SIGUSR1, newProcessArrived);
     signal(SIGUSR2, noMoreProcesses);
-    key_t shm_ID, shm_ID2;
-	shm_ID = ftok("keyfile",150);
-    shm_ID2 = ftok("keyfile",200);
-    shmid = shmget(100, sizeof(processData), IPC_CREAT | 0644);
-    shmid2 = shmget(200, sizeof(schedulingType*), IPC_CREAT | 0644);
+    //Create a message Queue for sending the initial data(scheduling type, parameters,number of processes)
+    int INITIAL_MSG_Q_ID = msgget(55, 0666 | IPC_CREAT); 
 
-    if (shmid == -1 || shmid2 == -1)
+    //Handle unexpected errors by notifying the user and shutting down
+    if (INITIAL_MSG_Q_ID == -1)
+    {
+        perror("Error in create");
+        exit(-1);
+    }
+
+    key_t shm_ID;
+	shm_ID = ftok("keyfile",150);
+    shmid = shmget(77, sizeof(processData), IPC_CREAT | 0644);
+
+    if (shmid == -1)
     {
         perror("Error in create sched");
         exit(-1);
@@ -236,17 +247,15 @@ int main(int argc, char * argv[])
     else
     {
         printf("Shared memory ID scheduler sched: %d \n", shmid);
-        printf("Shared memory ID scheduler for algo sched: %d \n", shmid2);
     }
 
     //initClk();
     //schedulingAlgorithm type = RR;
-    schedulingType s = receiveSchedulingType(shmid2);
+    schedulingType s = receiveSchedulingType(INITIAL_MSG_Q_ID);
     schedulingAlgorithm type = s.algo;
     int quantum = s.quantum;
     PCB = createHash(s.numProcesses * 3);
     printf("alg %d, q %d , n %d \n", type, s.quantum, s.numProcesses);
-      shmctl(shmid2, IPC_RMID, (struct shmid_ds *)0);
 
     //Creating the appropriate queue for the choosen algorithm
     struct PriorityQueue* queueHPF;

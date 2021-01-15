@@ -17,30 +17,29 @@ void sendNewProcess(int shmid, processData processToBeSent)
     }
     shmdt(shmaddr);
 }
-void sendSchedulingType(int shmid2, schedulingAlgorithm s, int quantum, int numProcesses)
+void sendSchedulingType(int INITIAL_MSG_Q_ID, schedulingAlgorithm s, int quantum, int numProcesses)
 {
-    schedulingType* shmaddr = shmat(shmid2, (void *)0, 0);
-    if (shmaddr == -1)
-    {
-        perror("Error in attach in writer");
-        exit(-1);
-    }
-    else
-    {
-        schedulingType temp;
-        temp.algo = s;
-        temp.quantum = quantum;
-        temp.numProcesses = numProcesses;
-        *(shmaddr) = temp;
-    } 
-    shmdt(shmaddr);
+    //Construct the message 
+    msgbuff message;
+    message.mtype = 50; 
+
+    message.initialSchedulingData.algo = s;
+    message.initialSchedulingData.quantum = quantum;
+    message.initialSchedulingData.numProcesses = numProcesses;
+
+    //Send the message
+    int send_val = msgsnd(INITIAL_MSG_Q_ID, &message, sizeof(message.initialSchedulingData), !IPC_NOWAIT);
+
+    //Handle unexpected errors by notifying the user
+    if (send_val == -1)
+        perror("Errror in sending the initial data to the scheduler.");
 }
 int main()
 {
     signal(SIGINT, clearResources);
     // TODO Initialization
     // 1. Read the input files.
-    FILE* inputFile = fopen("/home/mariam/OS_Project/Cool_OS_Project/project/Phase 1 (Scheduler)/code/processes.txt","r");
+    FILE* inputFile = fopen("/home/grey/Documents/University/OS/Cool_OS_Project/project/Phase 1 (Scheduler)/code/processes.txt","r");
     if (inputFile == NULL ) 
     {   
         printf("Error! Could not open processes file\n"); 
@@ -67,29 +66,38 @@ int main()
     else if (clockPID == 0)
     {
         printf("clock \n");
-	   execl("/home/mariam/OS_Project/Cool_OS_Project/project/Phase 1 (Scheduler)/code/clk.o", "clk.o", NULL);
+	   execl("/home/grey/Documents/University/OS/Cool_OS_Project/project/Phase 1 (Scheduler)/code/clk.o", "clk.o", NULL);
     }
     if (schedulerPID == -1)
     perror("error in fork");
     else if (schedulerPID == 0)
     {
-       execl("/home/mariam/OS_Project/Cool_OS_Project/project/Phase 1 (Scheduler)/code/scheduler.o", "scheduler.o", NULL); 
+       execl("/home/grey/Documents/University/OS/Cool_OS_Project/project/Phase 1 (Scheduler)/code/scheduler.o", "scheduler.o", NULL); 
     }
-    key_t shm_ID, shm_ID2;
+
+
+    //Create a message Queue for sending the initial data(scheduling type, parameters,number of processes)
+    int INITIAL_MSG_Q_ID = msgget(55, 0666 | IPC_CREAT); 
+
+    //Handle unexpected errors by notifying the user and shutting down
+    if (INITIAL_MSG_Q_ID == -1)
+    {
+        perror("Error in create");
+        exit(-1);
+    }
+
+    key_t shm_ID;
 	shm_ID = ftok("keyfile",150);
-    shm_ID = ftok("keyfile",200);
-    int shmid = shmget(100, sizeof(processData), IPC_CREAT | 0644);
-    int shmid2 = shmget(200, sizeof(schedulingType*), IPC_CREAT | 0644);
-    if (shmid == -1 || shmid2 == -1)
+    int shmid = shmget(77, sizeof(processData), IPC_CREAT | 0644);
+    if (shmid == -1)
     {
         perror("Error in create gen");
-        printf(" 1: %d , 2: %d \n", shmid, shmid2);
+        printf(" 1: %d , 2: %d \n", shmid);
         exit(-1);
     }
     else
     {
         printf("Shared memory ID p gen: %d \n", shmid);
-        printf("Shared memory ID (alg type)p gen: %d \n", shmid2);
     }
     // 4. Use this function after creating the clock process to initialize clock
     initClk();
@@ -131,7 +139,7 @@ int main()
     int counter = 0;
     int now;
     int sizeOfQueue = processQueue->size;
-    sendSchedulingType(shmid2, chosenAlgorithm, quantum, sizeOfQueue);
+    sendSchedulingType(INITIAL_MSG_Q_ID, chosenAlgorithm, quantum, sizeOfQueue);
     processData * processToBeSent;
     for (int i = 0; i < sizeOfQueue; i++)
     {
