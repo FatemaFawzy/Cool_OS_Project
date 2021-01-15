@@ -42,6 +42,21 @@ struct Node {
     struct Node* next;
 };
 
+typedef struct 
+{
+    long mtype;
+    processData* newProcess;
+} msgbuff;
+
+union Semun
+{
+    int val;               /* value for SETVAL */
+    struct semid_ds *buf;  /* buffer for IPC_STAT & IPC_SET */
+    ushort *array;         /* array for GETALL & SETALL */
+    struct seminfo *__buf; /* buffer for IPC_INFO */
+    void *__pad;
+};
+
 #define MAX_SIZE 1000
 
 typedef enum {PRIORITIZE_TIME , PRIORITIZE_PRIORITY } PriorityPurpose; 
@@ -51,6 +66,13 @@ typedef enum {HPF,STRN,RR} schedulingAlgorithm;
 int * shmaddr;                 //
 //===============================
 
+
+typedef struct 
+{
+    schedulingAlgorithm algo;
+    int quantum; 
+    int numProcesses;
+} schedulingType;
 
 
 int getClk()
@@ -100,6 +122,36 @@ char* concat(const char *s1, const char *s2)
     strcpy(result, s1);
     strcat(result, s2);
     return result;
+}
+
+void down(int sem)
+{
+    struct sembuf p_op;
+
+    p_op.sem_num = 0;
+    p_op.sem_op = -1;
+    p_op.sem_flg = !IPC_NOWAIT;
+
+    if (semop(sem, &p_op, 1) == -1)
+    {
+        perror("Error in down()");
+        exit(-1);
+    }
+}
+
+void up(int sem)
+{
+    struct sembuf v_op;
+
+    v_op.sem_num = 0;
+    v_op.sem_op = 1;
+    v_op.sem_flg = !IPC_NOWAIT;
+
+    if (semop(sem, &v_op, 1) == -1)
+    {
+        perror("Error in up()");
+        exit(-1);
+    }
 }
 
 #endif

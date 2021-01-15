@@ -3,13 +3,15 @@
 #include "queue.c"
 #define PROCESSES_NUMBER 5
 
-
+int shmid, shmid2;
+struct Hash* PCB;
+bool finish = false;
 
 void insertProcessPriorityQueue(struct PriorityQueue* queue,processData* process,int clock)
 {
     if(process != NULL && process->arrivalTime == clock)
     {
-        printf("\nat t=%d: Process with ID %d has arrived!\n",clock,process->id);
+        //printf("\nat t=%d: Process with ID %d has arrived!\n",clock,process->id);
         enqueuePriorityQueue(queue,process);    
     }
 }
@@ -19,7 +21,7 @@ void insertProcessQueue(struct Queue* queue,processData* process,int clock)
 {
     if(process != NULL && process->arrivalTime == clock)
     {
-        printf("\nat t=%d: Process with ID %d has arrived!\n",clock,process->id);
+        //printf("\nat t=%d: Process with ID %d has arrived!\n",clock,process->id);
         enqueueQueue(queue,process);    
     }
 }
@@ -53,7 +55,7 @@ bool doHPF(int clock,struct PriorityQueue* queue,struct Hash* PCB)
 
             if(process->remainingTime == 0)
             {
-                printf("\n--> Process %d with priority %d has finished in t=%d after waiting %ds <--\n",process->id,process->priority,clock,process->waitingTime);
+                //printf("\n--> Process %d with priority %d has finished in t=%d after waiting %ds <--\n",process->id,process->priority,clock,process->waitingTime);
                 hashRemove(PCB,process->id);
                 processessCounter++;
                 process = NULL;
@@ -89,8 +91,8 @@ bool doSTRN(int clock,struct PriorityQueue* queue,struct Hash* PCB){
         // Checking on context switching (DEBUGGING PURPOSES)
         if( process != prev)
         {
-            if(prev != NULL) printf("\nAt t=%d: Process %d with RT=%d has swtiched the context to process %d with RT=%d\n",clock,prev->id,prev->remainingTime,process->id,process->remainingTime);
-            else printf("\nAt t=%d: Switching the context to process %d with RT=%d\n",clock,process->id,process->remainingTime);
+            //if(prev != NULL) printf("\nAt t=%d: Process %d with RT=%d has swtiched the context to process %d with RT=%d\n",clock,prev->id,prev->remainingTime,process->id,process->remainingTime);
+            //else printf("\nAt t=%d: Switching the context to process %d with RT=%d\n",clock,process->id,process->remainingTime);
             prev= process;
         }
         // Calculate waiting time for this process
@@ -100,7 +102,7 @@ bool doSTRN(int clock,struct PriorityQueue* queue,struct Hash* PCB){
         process->remainingTime --;
         if(process->remainingTime == 0)
         {
-            printf("\n--> Process %d with running time %d has finished in t=%d after waiting %ds <--\n",process->id,process->runningTime,clock,process->waitingTime);
+            //printf("\n--> Process %d with running time %d has finished in t=%d after waiting %ds <--\n",process->id,process->runningTime,clock,process->waitingTime);
             dequeuePriorityQueue(queue);
             hashRemove(PCB,process->id);
             processessCounter++;
@@ -135,8 +137,8 @@ bool doRR(int clock,struct Queue* queue,struct Hash* PCB, unsigned int quantum)
         if(process == NULL) 
         {
             process = dequeueQueue(queue);
-            if(process != NULL) 
-                printf("\nat t=%d: The context is switched to process %d\n",clock,process->id);
+            //if(process != NULL) 
+                //printf("\nat t=%d: The context is switched to process %d\n",clock,process->id);
         }
         if(process != NULL)
         {
@@ -150,7 +152,7 @@ bool doRR(int clock,struct Queue* queue,struct Hash* PCB, unsigned int quantum)
 
             if(process->remainingTime == 0)
             {
-                printf("\n--> Process %d has finished in t=%d after waiting %ds <--\n",process->id,clock,process->waitingTime);
+                //printf("\n--> Process %d has finished in t=%d after waiting %ds <--\n",process->id,clock,process->waitingTime);
                 hashRemove(PCB,process->id);
                 processessCounter++;
                 process = NULL;
@@ -173,38 +175,83 @@ bool doRR(int clock,struct Queue* queue,struct Hash* PCB, unsigned int quantum)
 
     return false;
 }
-
+processData receiveNewProcess(int shmid)
+{
+    processData *shmaddr = shmat(shmid, (void *)0, 0);
+    if (shmaddr == -1)
+    {
+        perror("Error in attach in reader");
+        exit(-1);
+    }
+    return *shmaddr;
+}
+schedulingType receiveSchedulingType(int shmid2)
+{
+    schedulingType *shmaddr = shmat(shmid2, (void *)0, 0);
+    if (shmaddr == -1)
+    {
+        perror("Error in attach in reader");
+        exit(-1);
+    }
+    return *shmaddr;
+}
+void newProcessArrived(int signum)
+{
+    printf("Entered sig handler in scheduler \n");
+    processData newProcess = receiveNewProcess(shmid);
+    processData* temp = (processData*)malloc(sizeof(processData));
+    temp->id = newProcess.id;
+    temp->arrivalTime = newProcess.arrivalTime;
+    temp->runningTime = newProcess.runningTime;
+    temp->priority = newProcess.priority;
+    temp->lastBlockingTime = newProcess.arrivalTime;
+    temp->memorySize = newProcess.memorySize;
+    temp->waitingTime = newProcess.waitingTime;
+    printf("Received %d %d %d %d \n", temp->id, temp->arrivalTime, temp->runningTime, temp->priority);
+    printf("--------------- \n");
+    hashInsert(PCB,newProcess.id,&newProcess);
+    signal(SIGUSR1, newProcessArrived);   
+}
+void noMoreProcesses(int signum)
+{
+    finish = true;
+    printf("No more processes \n");
+    signal(SIGUSR2, noMoreProcesses);
+}
 int main(int argc, char * argv[])
 {
+    signal(SIGUSR1, newProcessArrived);
+    signal(SIGUSR2, noMoreProcesses);
+    key_t shm_ID, shm_ID2;
+	shm_ID = ftok("keyfile",150);
+    shm_ID2 = ftok("keyfile",200);
+    shmid = shmget(100, sizeof(processData), IPC_CREAT | 0644);
+    shmid2 = shmget(200, sizeof(schedulingType*), IPC_CREAT | 0644);
+
+    if (shmid == -1 || shmid2 == -1)
+    {
+        perror("Error in create sched");
+        exit(-1);
+    }
+    else
+    {
+        printf("Shared memory ID scheduler sched: %d \n", shmid);
+        printf("Shared memory ID scheduler for algo sched: %d \n", shmid2);
+    }
+
     //initClk();
-    schedulingAlgorithm type = RR;
-
-    //Should give the hash a size
-    struct Hash* PCB = createHash(10);
-
-    ///TODO: (Replace this with taking input from Process generator)
-    // id arrival runtime priority  memroy remaining waiting lastBlocking
-    static processData pcb1 = {1,16,23,2,100,  23,0,16};
-    static processData pcb2 = {2,3,18,1,100,  18,0,3};
-    static processData pcb3 = {3,11,24,10,100,  24,0,11};
-    static processData pcb4 = {4,23,16,7,100,  16,0,23};
-    static processData pcb5 = {5,26,9,4,100,  9,0,26};
-    //should loop on these ..
-    hashInsert(PCB,pcb1.id,&pcb1);
-    hashInsert(PCB,pcb2.id,&pcb2);
-    hashInsert(PCB,pcb3.id,&pcb3);
-    hashInsert(PCB,pcb4.id,&pcb4);
-    hashInsert(PCB,pcb5.id,&pcb5);
-
-    ///TODO: ( Replace with getcloack() )
-    int clock = 0; 
-    
+    //schedulingAlgorithm type = RR;
+    schedulingType s = receiveSchedulingType(shmid2);
+    schedulingAlgorithm type = s.algo;
+    int quantum = s.quantum;
+    PCB = createHash(s.numProcesses * 3);
+    printf("alg %d, q %d , n %d \n", type, s.quantum, s.numProcesses);
+      shmctl(shmid2, IPC_RMID, (struct shmid_ds *)0);
 
     //Creating the appropriate queue for the choosen algorithm
     struct PriorityQueue* queueHPF;
     struct PriorityQueue* queueSTRN;
     struct Queue* queueRR;
-        //struct Queue* queueRR = createQueue();
     switch (type)
     {
     case HPF:
@@ -218,24 +265,35 @@ int main(int argc, char * argv[])
         break;
     }
 
+    //Should give the hash a size
+    ///TODO: ( Replace with getcloack() )
+    int clock = 0; 
+    //printf("hash size %d \n", PCB->count);
+
     //Sarting the scheduling process
     while(1){
-        switch (type)
+        while(!isEmptyHash(PCB))
         {
-        case HPF:
-            if(doHPF(clock,queueHPF,PCB)) exit(0);
-            break;
-        case STRN:
-            if(doSTRN(clock,queueSTRN,PCB)) exit(0);
-            break;
-        case RR:
-            if(doRR(clock,queueRR,PCB,5)) exit(0);
-            break;
+            switch (type)
+            {
+            case HPF:
+                if(doHPF(clock,queueHPF,PCB)) exit(0);
+                break;
+            case STRN:
+                if(doSTRN(clock,queueSTRN,PCB)) exit(0);
+                break;
+            case RR:
+                if(doRR(clock,queueRR,PCB,quantum)) exit(0);
+                break;
+            }
+            ///TODO: Replace it with the original clock
+            // Clock incearsing
+            clock++;
         }
-
-        ///TODO: Replace it with the original clock
-        // Clock incearsing
-        clock++;
+        if (finish)
+            break;
+        else
+            sleep;
     }
 
     return 0;
