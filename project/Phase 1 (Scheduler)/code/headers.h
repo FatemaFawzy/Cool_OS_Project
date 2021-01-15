@@ -59,7 +59,8 @@ union Semun
 
 #define MAX_SIZE 1000
 
-typedef enum {PRIORITIZE_TIME , PRIORITIZE_PRIORITY } PriorityPurpose; 
+typedef enum {PRIORITIZE_TIME,PRIORITIZE_PRIORITY} PriorityPurpose; 
+typedef enum {STARTED,RESUMED,STOPPED,FINISHED} ProcessState; 
 typedef enum {HPF,STRN,RR} schedulingAlgorithm;
 ///==============================
 //don't mess with this variable//
@@ -152,6 +153,11 @@ void up(int sem)
         perror("Error in up()");
         exit(-1);
     }
+int power(int base, int exp)
+{
+    int result = 1;
+    while(exp) { result *= base; exp--; }
+    return result;
 }
 
 #endif
