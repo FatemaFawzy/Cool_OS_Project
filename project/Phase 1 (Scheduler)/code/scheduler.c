@@ -187,16 +187,16 @@ processData receiveNewProcess(int shmid)
 }
 schedulingType receiveSchedulingType(int INITIAL_MSG_Q_ID)
 {
-    msgbuff messageRecieved;
+    msgbuff messageReceived;
 
     //recieve only the messages of 50 message type
-    int rec_val = msgrcv(INITIAL_MSG_Q_ID, &messageRecieved, sizeof(messageRecieved.initialSchedulingData), 50, !IPC_NOWAIT);
+    int rec_val = msgrcv(INITIAL_MSG_Q_ID, &messageReceived, sizeof(messageReceived.initialSchedulingData), 50, !IPC_NOWAIT);
 
     //Handle unexpected errors by notifying the user
     if (rec_val == -1)
         perror("Error in receiving the initial data from the process generator.");
 
-    return messageRecieved.initialSchedulingData;
+    return messageReceived.initialSchedulingData;
 }
 void newProcessArrived(int signum)
 {
@@ -221,6 +221,44 @@ void noMoreProcesses(int signum)
     printf("No more processes \n");
     signal(SIGUSR2, noMoreProcesses);
 }
+
+void sendProcessParameters(int Q_ID_SMP, int burstTime, int startTime,int waitingTime,int processID)
+{
+    //Construct the message 
+    ProcessParametersBuff message;
+    message.mtype = processID%10000; 
+
+    message.parameters.burstTime= burstTime;
+    message.parameters.startTime= startTime;
+    message.parameters.waitingTime= waitingTime;
+
+    //Send the message
+    int send_val = msgsnd(Q_ID_SMP, &message, sizeof(message.parameters), !IPC_NOWAIT);
+
+    //Handle unexpected errors by notifying the user
+    if (send_val == -1)
+        perror("Errror in sending the initial data to the scheduler.");
+}
+
+int forkANewProcess()
+{
+    int newProcessPID = fork();
+    
+    if (newProcessPID == -1)
+  	    perror("error in forking a new process");	
+    else if (newProcessPID == 0)
+    {
+        printf("newProcess \n");
+        //TODO change the full path
+	    execl("/home/grey/Documents/University/OS/Cool_OS_Project/project/Phase 1 (Scheduler)/code/process.o", "process.o", NULL);
+    }
+    else return newProcessPID;
+}
+// void doATestHPF(int Q_ID_SMP)
+// {
+//     int newProcessPID=forkANewProcess();
+//     sendProcessParameters(Q_ID_SMP,12,10,0,newProcessPID);
+// }
 int main(int argc, char * argv[])
 {
     signal(SIGUSR1, newProcessArrived);
@@ -249,6 +287,14 @@ int main(int argc, char * argv[])
         printf("Shared memory ID scheduler sched: %d \n", shmid);
     }
 
+    //Message Queue for the processes
+    int Q_ID_SMP = msgget(Q_ID_SMP_KEY, 0666 | IPC_CREAT); 
+    //Handle unexpected errors by notifying the user and shutting down
+    if (Q_ID_SMP == -1)
+    {
+        perror("Error in create the message queue of schedulerIsMessagingProcess");
+        exit(-1);
+    }
     //initClk();
     //schedulingAlgorithm type = RR;
     schedulingType s = receiveSchedulingType(INITIAL_MSG_Q_ID);
@@ -286,6 +332,7 @@ int main(int argc, char * argv[])
             switch (type)
             {
             case HPF:
+                // doATestHPF(Q_ID_SMP);
                 if(doHPF(clock,queueHPF,PCB)) exit(0);
                 break;
             case STRN:

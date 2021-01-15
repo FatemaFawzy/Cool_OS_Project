@@ -22,6 +22,7 @@ typedef short bool;
 #define false 0
 
 #define SHKEY 300
+#define Q_ID_SMP_KEY 99
 
 typedef struct
 {
@@ -55,7 +56,7 @@ union Semun
 
 typedef enum {PRIORITIZE_TIME,PRIORITIZE_PRIORITY} PriorityPurpose; 
 typedef enum {STARTED,RESUMED,STOPPED,FINISHED} ProcessState; 
-typedef enum {HPF,STRN,RR} schedulingAlgorithm;
+typedef enum {HPF=1,STRN=2,RR=3} schedulingAlgorithm;
 ///==============================
 //don't mess with this variable//
 int * shmaddr;                 //
@@ -75,6 +76,20 @@ typedef struct
     schedulingType initialSchedulingData;
     
 } msgbuff;
+
+typedef struct 
+{
+    int burstTime;
+    int startTime;
+    int waitingTime;
+}ProcessParameters;
+
+typedef struct 
+{
+    long mtype;
+    ProcessParameters parameters;
+    
+} ProcessParametersBuff;
 
 int getClk()
 {
