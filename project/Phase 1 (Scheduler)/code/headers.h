@@ -153,6 +153,7 @@ void up(int sem)
         perror("Error in up()");
         exit(-1);
     }
+}
 int power(int base, int exp)
 {
     int result = 1;
