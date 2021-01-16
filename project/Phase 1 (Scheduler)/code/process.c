@@ -52,7 +52,7 @@ int main(int agrc, char * argv[])
     initClk();
     
     // the loop continues till I am either finished or preempted
-    while (burstTime-getClk()-startTime-waitingTime > 0);
+    while (burstTime-getClk()+startTime+waitingTime > 0);
     
     destroyClk(false);
     

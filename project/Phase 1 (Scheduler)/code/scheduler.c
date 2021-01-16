@@ -1,6 +1,8 @@
 #include "priorityQueue.c"
 #include "hash.c"
 #include "queue.c"
+#include "logger.c"
+#include "memory.c"
 #define PROCESSES_NUMBER 5
 
 int shmid;
@@ -258,7 +260,7 @@ int forkANewProcess(processData* p)
     {
         printf("newProcess \n");
         //TODO change the full path
-	    execl("/home/mariam/OS_Project/Cool_OS_Project/project/Phase 1 (Scheduler)/code/process.o", "process.o", NULL);
+	    execl("/home/grey/Documents/University/OS/Cool_OS_Project/project/Phase 1 (Scheduler)/code/process.o", "process.o", NULL);
     }
     else 
     {
@@ -266,22 +268,33 @@ int forkANewProcess(processData* p)
         return newProcessPID;
     }
 }
- void doATestHPF(int Q_ID_SMP)
+ void doATestHPF(int Q_ID_SMP,Logger *logger,Memory *memory)
  {
-    processData* p = dequeuePriorityQueue(queueHPF);
     int stat_loc;
-    int newProcessPID=forkANewProcess(p);
-    hashInsert(PCB, p->id, p);
-    sendProcessParameters(Q_ID_SMP,p->runningTime, getClk(),p->waitingTime,newProcessPID);
-    wait(&stat_loc);
-    hashRemove(PCB, p->id);
+    processData* p = dequeuePriorityQueue(queueHPF); //Dequeue the process whose turn is now
+    MemoryLocation* address= allocate(memory,p->id,200); //Allocate a place in the memory for the process 
+    printAddress(address);
+    memoryLog(memory,p->id,getClk(),true);
+    int newProcessPID=forkANewProcess(p);//Fork the process
+    hashInsert(PCB, p->id, p); //Insert the forked process into the PCB
+    p->waitingTime=getClk()-p->arrivalTime;
+    //Log the process to the file (state=STARTED)
+    schedulerLog(logger,getClk(),p->id,STARTED,p->arrivalTime,p->runningTime,p->runningTime,p->waitingTime);
+    sendProcessParameters(Q_ID_SMP,p->runningTime, getClk(),0,newProcessPID); //Send the parameters
+    wait(&stat_loc); //Wait for the process to finish
+    schedulerLog(logger,getClk(),p->id,FINISHED,p->arrivalTime,p->runningTime,0,p->waitingTime);
+    memoryLog(memory,p->id,getClk(),false);//deallocate from the memory
+    deallocate(memory,p->id);
+    hashRemove(PCB, p->id); //Remove the finished process from the PCB
  }
 int main(int argc, char * argv[])
 {
     signal(SIGUSR1, newProcessArrived);
     signal(SIGUSR2, noMoreProcesses);
-     initClk();
-     printf("initial %d ", getClk());
+    initClk();
+    Logger *logger=createLogger();
+    Memory *memory=createMemory();
+    printf("initial %d ", getClk());
     //Create a message Queue for sending the initial data(scheduling type, parameters,number of processes)
     int INITIAL_MSG_Q_ID = msgget(55, 0666 | IPC_CREAT); 
 
@@ -319,6 +332,7 @@ int main(int argc, char * argv[])
     type = s.algo;
     int quantum = s.quantum;
     PCB = createHash(s.numProcesses * 3);
+   
     printf("alg %d, q %d , n %d \n", type, s.quantum, s.numProcesses);
 
     //Creating the appropriate queue for the choosen algorithm
@@ -348,18 +362,10 @@ int main(int argc, char * argv[])
         while(1){
             while(!isEmptyPriorityQueue(queueHPF))
             {
-                //int prev = getClk();
-                //bool flag = false;
-                //printf("prev %d \n", prev);
-                 doATestHPF(Q_ID_SMP);
-                //if(doHPF(getClk(),queueHPF,PCB)) exit(0);
-                //int now = getClk();
-                //while (getClk() == prev);
+                 doATestHPF(Q_ID_SMP,logger,memory);
             }
             if (finish)
                 break;
-            else
-                sleep;
         }
         break;
     case STRN:
@@ -403,7 +409,11 @@ int main(int argc, char * argv[])
     default:
         break;
     }
+    //This should be called after all the processes have finished
+    schedulerPerf(logger);
+    destroyLogger(logger);
+    destroyMemory(memory);
+    destroyClk(true);
 
     return 0;
-    destroyClk(true);
 }

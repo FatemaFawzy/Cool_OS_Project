@@ -39,7 +39,7 @@ int main()
     signal(SIGINT, clearResources);
     // TODO Initialization
     // 1. Read the input files.
-    FILE* inputFile = fopen("/home/mariam/OS_Project/Cool_OS_Project/project/Phase 1 (Scheduler)/code/processes.txt","r");
+    FILE* inputFile = fopen("/home/grey/Documents/University/OS/Cool_OS_Project/project/Phase 1 (Scheduler)/code/processes.txt","r");
     if (inputFile == NULL ) 
     {   
         printf("Error! Could not open processes file\n"); 
@@ -66,14 +66,14 @@ int main()
     else if (clockPID == 0)
     {
         printf("clock \n");
-	   execl("/home/mariam/OS_Project/Cool_OS_Project/project/Phase 1 (Scheduler)/code/clk.o", "clk.o", NULL);
+	   execl("/home/grey/Documents/University/OS/Cool_OS_Project/project/Phase 1 (Scheduler)/code/clk.o", "clk.o", NULL);
     }
     int schedulerPID = fork();
     if (schedulerPID == -1)
     perror("error in fork");
     else if (schedulerPID == 0)
     {
-       execl("/home/mariam/OS_Project/Cool_OS_Project/project/Phase 1 (Scheduler)/code/scheduler.o", "scheduler.o", NULL); 
+       execl("/home/grey/Documents/University/OS/Cool_OS_Project/project/Phase 1 (Scheduler)/code/scheduler.o", "scheduler.o", NULL); 
     }
 
 
@@ -156,13 +156,14 @@ int main()
         }
         //printf("-------------------- \n");
     }
-    sleep(5);
+    // sleep(60);
     kill(schedulerPID,SIGUSR2);
     printf("done in p gen\n");
     // 7. Clear clock resources
-    destroyClk(true);
-    clockPID = wait(&stat_loc);
     schedulerPID = wait(&stat_loc_sched);
+    destroyClk(true);
+    // clockPID = wait(&stat_loc);
+    
 }
 
 void clearResources(int signum)

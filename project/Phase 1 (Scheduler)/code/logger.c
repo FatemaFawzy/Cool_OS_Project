@@ -60,6 +60,7 @@ float computeStdWTA(Logger* self,float avgWTA)
 void schedulerLog(Logger* self,int time,int processID,
 ProcessState state,int arr,int total,int remain,int wait)
 {
+    printf("Entered Logger\n");
     char*logMessage,*tempStr1,*tempStr2,*tempStr3,*tempStr4,*tempStr5,*tempStr6,*tempStr7,*tempStr8,*tempStr9,*tempStr10;
     char*tempStr12,*tempStr34,*tempStr56,*tempStr78,*tempStr910,*tempStr1234,*tempStr5678,*tempStr12345678;
     char currentTimeString[16],processIDString[16];
@@ -136,7 +137,9 @@ ProcessState state,int arr,int total,int remain,int wait)
     {
         logMessage=concat(tempStr1234,tempStr5678);free(tempStr1234);free(tempStr5678);
     }
+    printf("Supposedly logged %s\n",logMessage);
     fputs(logMessage, self->logFilePtr);free(logMessage);
+    
 }
 
 void schedulerPerf(Logger* self)

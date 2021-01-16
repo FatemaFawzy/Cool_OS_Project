@@ -144,13 +144,13 @@ void deallocatePrivate( Memory* self,int start,int end)
     int subMemoryIndex=logarithm2(usedSize);
     int startIndex=start/usedSize;
     //Merging is required
-    if(startIndex%2==0 && self->freeMemory[subMemoryIndex][startIndex+1]==FREE) 
+    if(subMemoryIndex!=10&&startIndex%2==0 && self->freeMemory[subMemoryIndex][startIndex+1]==FREE) 
     {
         self->freeMemory[subMemoryIndex][startIndex+1]=NON_EXISTENT;
         deallocatePrivate(self,start,end+usedSize);
     }
     //Merging is also required
-    else if((startIndex>0)&&((startIndex-1)%2==0)&&(self->freeMemory[subMemoryIndex][startIndex-1]==FREE) )
+    else if((subMemoryIndex!=10)&&(startIndex>0)&&((startIndex-1)%2==0)&&(self->freeMemory[subMemoryIndex][startIndex-1]==FREE) )
     {
         self->freeMemory[subMemoryIndex][startIndex-1]=NON_EXISTENT;
         deallocatePrivate(self,start-usedSize,end);
@@ -198,6 +198,14 @@ void memoryLog(Memory* self,int processID,int currentTime,bool IamAllocating)
     allocationMessage=concat(tempStr1234,tempStr56);free(tempStr1234);free(tempStr56);
 
     fputs(allocationMessage, self->memoryFilePtr);free(allocationMessage);
+}
+
+void printAddress(MemoryLocation* address)
+{
+    if(address)
+    printf("allocated memory from %d to %d\n",address->startAddress,address->endAddress);  
+    else
+    printf("Allocation failed! memory is FULL\n");  
 }
 
 
