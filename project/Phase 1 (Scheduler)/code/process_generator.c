@@ -39,7 +39,7 @@ int main()
     signal(SIGINT, clearResources);
     // TODO Initialization
     // 1. Read the input files.
-    FILE* inputFile = fopen("/home/grey/Documents/University/OS/Cool_OS_Project/project/Phase 1 (Scheduler)/code/processes.txt","r");
+    FILE* inputFile = fopen("/home/mariam/OS_Project/Cool_OS_Project/project/Phase 1 (Scheduler)/code/processes.txt","r");
     if (inputFile == NULL ) 
     {   
         printf("Error! Could not open processes file\n"); 
@@ -66,14 +66,14 @@ int main()
     else if (clockPID == 0)
     {
         printf("clock \n");
-	   execl("/home/grey/Documents/University/OS/Cool_OS_Project/project/Phase 1 (Scheduler)/code/clk.o", "clk.o", NULL);
+	   execl("/home/mariam/OS_Project/Cool_OS_Project/project/Phase 1 (Scheduler)/code/clk.o", "clk.o", NULL);
     }
     int schedulerPID = fork();
     if (schedulerPID == -1)
     perror("error in fork");
     else if (schedulerPID == 0)
     {
-       execl("/home/grey/Documents/University/OS/Cool_OS_Project/project/Phase 1 (Scheduler)/code/scheduler.o", "scheduler.o", NULL); 
+       execl("/home/mariam/OS_Project/Cool_OS_Project/project/Phase 1 (Scheduler)/code/scheduler.o", "scheduler.o", NULL); 
     }
 
 
@@ -127,9 +127,12 @@ int main()
         p->remainingTime = atoi(token3);
         char * token4 = strtok(NULL, "\t");
         p->priority = atoi(token4);
+        char * token5 = strtok(NULL, "\t");
+        p->memorySize = atoi(token5);
         p->waitingTime = 0;
         p->lastBlockingTime = 0;
-        p->memorySize = 0;
+        p->startTime = 0;
+        p->idleTime = 0;
         //printf("%d %d %d %d \n", p->id, p->arrivalTime, p->runningTime, p->priority);
         inserted = enqueueQueue(processQueue, p);
         if (!inserted)

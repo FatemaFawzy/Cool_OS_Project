@@ -1,12 +1,7 @@
 #include "headers.h"
 
-int burstTime,startTime,waitingTime;
+int burstTime,startTime,waitingTime, Q_ID_SMP;
 
-// void continueMe(int signum)
-// {
-
-//  signal(SIGCONT, continueMe);   
-// }
 
 // void preemptMe(int signum)
 // {
@@ -14,7 +9,7 @@ int burstTime,startTime,waitingTime;
 //  signal(SIGSTOP, preemptMe);  
 // }
 
-ProcessParameters recieveProcessParameters(int Q_ID_SMP)
+void recieveProcessParameters(int Q_ID_SMP)
 {
     ProcessParametersBuff messageReceived;
 
@@ -25,13 +20,20 @@ ProcessParameters recieveProcessParameters(int Q_ID_SMP)
     if (rec_val == -1)
         perror("Error in receiving the process parametrs from the message Q");
 
-    return messageReceived.parameters;
+    burstTime=messageReceived.parameters.burstTime;
+    startTime=messageReceived.parameters.startTime;
+    waitingTime=messageReceived.parameters.waitingTime;
 }
-
+void continueMe(int signum)
+{
+    printf("I will now continue \n");
+    recieveProcessParameters(Q_ID_SMP);
+    signal(SIGCONT, continueMe);   
+}
 int main(int agrc, char * argv[])
 {
 
-    int Q_ID_SMP = msgget(Q_ID_SMP_KEY, 0666 | IPC_CREAT); 
+    Q_ID_SMP = msgget(Q_ID_SMP_KEY, 0666 | IPC_CREAT); 
     //Handle unexpected errors by notifying the user and shutting down
     if (Q_ID_SMP == -1)
     {
@@ -39,15 +41,13 @@ int main(int agrc, char * argv[])
         exit(-1);
     }
     //If the data is not sent from the scheduler yet, sleep
-    ProcessParameters params= recieveProcessParameters(Q_ID_SMP); 
+    recieveProcessParameters(Q_ID_SMP); 
     //as soon as I recieve my parameters,I set them and begin the loop
-    burstTime=params.burstTime;
-    startTime=params.startTime;
-    waitingTime=params.waitingTime;
+    
 
     printf("I am a process that got forked by the scheduler with these parameters: \n");
     printf("%d,%d,%d\n",burstTime,startTime,waitingTime);
-    // signal(SIGCONT, continueMe);
+    signal(SIGCONT, continueMe);
     // signal(SIGSTOP, preemptMe);
     initClk();
     

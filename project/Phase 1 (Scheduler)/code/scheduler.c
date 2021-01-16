@@ -75,14 +75,6 @@ bool doSTRN(int clock,struct PriorityQueue* queue,struct Hash* PCB){
     static processData* prev = NULL; 
     static int processessCounter = 0;
 
-    //Check if new process comes 
-    ///TODO:(SHOULD BE REPLACED)
-    insertProcessPriorityQueue(queue,hashFind(PCB,1),clock);
-    insertProcessPriorityQueue(queue,hashFind(PCB,2),clock);
-    insertProcessPriorityQueue(queue,hashFind(PCB,3),clock);
-    insertProcessPriorityQueue(queue,hashFind(PCB,4),clock);
-    insertProcessPriorityQueue(queue,hashFind(PCB,5),clock); 
-
     if(!isEmptyPriorityQueue(queue)){
         // Get current process & process info
         processData* process = frontPriorityQueue(queue);
@@ -209,6 +201,9 @@ void newProcessArrived(int signum)
     temp->lastBlockingTime = newProcess.arrivalTime;
     temp->memorySize = newProcess.memorySize;
     temp->waitingTime = newProcess.waitingTime;
+    temp->remainingTime = newProcess.runningTime;
+    temp->idleTime = newProcess.idleTime;
+    temp->startTime = newProcess.startTime;
     printf("Received %d %d %d %d \n", temp->id, temp->arrivalTime, temp->runningTime, temp->priority);
     printf("--------------- \n");
     switch (type)
@@ -218,6 +213,10 @@ void newProcessArrived(int signum)
         break;
     case STRN:
         enqueuePriorityQueue(queueSTRN,temp);
+        printf("Rem time of front %d\n", frontPriorityQueue(queueSTRN)->remainingTime);
+        printf("Rem of new process %d \n",temp->remainingTime);
+        printf("added new process to queue \n");
+        printf("front now is a process with id %d \n", frontPriorityQueue(queueSTRN)->id);
         break;
     case RR:
         enqueueQueue(queueRR, temp);
@@ -259,8 +258,7 @@ int forkANewProcess(processData* p)
     else if (newProcessPID == 0)
     {
         printf("newProcess \n");
-        //TODO change the full path
-	    execl("/home/grey/Documents/University/OS/Cool_OS_Project/project/Phase 1 (Scheduler)/code/process.o", "process.o", NULL);
+	    execl("/home/mariam/OS_Project/Cool_OS_Project/project/Phase 1 (Scheduler)/code/process.o", "process.o", NULL);
     }
     else 
     {
@@ -268,11 +266,11 @@ int forkANewProcess(processData* p)
         return newProcessPID;
     }
 }
- void doATestHPF(int Q_ID_SMP,Logger *logger,Memory *memory)
- {
+void highestPriorityFirst(int Q_ID_SMP,Logger *logger,Memory *memory)
+{
     int stat_loc;
     processData* p = dequeuePriorityQueue(queueHPF); //Dequeue the process whose turn is now
-    MemoryLocation* address= allocate(memory,p->id,200); //Allocate a place in the memory for the process 
+    MemoryLocation* address= allocate(memory,p->id,p->memorySize); //Allocate a place in the memory for the process 
     printAddress(address);
     memoryLog(memory,p->id,getClk(),true);
     int newProcessPID=forkANewProcess(p);//Fork the process
@@ -286,7 +284,53 @@ int forkANewProcess(processData* p)
     memoryLog(memory,p->id,getClk(),false);//deallocate from the memory
     deallocate(memory,p->id);
     hashRemove(PCB, p->id); //Remove the finished process from the PCB
- }
+}
+void shortestRemainingTimeNext(int Q_ID_SMP,Memory* memory, Logger* logger)
+{
+    int stat_loc, newProcessPID;
+    processData* p = frontPriorityQueue(queueSTRN); //Dequeue the process whose turn is now  
+    if (!hashFind(PCB, p->id)) //first time the process executes
+    {
+        printf("process id: %d first time running \n", p->id);
+        MemoryLocation* address= allocate(memory,p->id,p->memorySize);
+        printAddress(address);
+        memoryLog(memory,p->id,getClk(),true);
+        newProcessPID = forkANewProcess(p); //fork the process
+        p->waitingTime = getClk() - p->arrivalTime;
+        schedulerLog(logger,getClk(),p->id,STARTED,p->arrivalTime,p->runningTime,p->runningTime,p->waitingTime);
+        p->startTime = getClk();
+        p->forkingID = newProcessPID;
+        hashInsert(PCB, p->id, p); 
+        sendProcessParameters(Q_ID_SMP,p->runningTime, getClk(),0,newProcessPID);
+    }
+    else
+    {
+        kill(p->forkingID,SIGCONT);
+        p->idleTime = getClk() - p->lastBlockingTime;
+        p->waitingTime += p->idleTime;
+        printf("process id: %d resumed \n", p->id);
+        sendProcessParameters(Q_ID_SMP,p->runningTime, p->startTime,p->idleTime,p->forkingID);
+        schedulerLog(logger,getClk(),p->id,RESUMED,p->arrivalTime,p->runningTime,p->remainingTime,p->waitingTime);
+    }
+    while (p == frontPriorityQueue(queueSTRN) && (p->remainingTime = p->runningTime - getClk() + p->startTime + p->idleTime) > 0);
+    if (p->remainingTime == 0 && p == frontPriorityQueue(queueSTRN))
+    {
+        schedulerLog(logger,getClk(),p->id,FINISHED,p->arrivalTime,p->runningTime,p->remainingTime,p->waitingTime);
+        printf("process id %d  is done\n", p->id);
+        dequeuePriorityQueue(queueSTRN);
+        hashRemove(PCB, p->id);
+        memoryLog(memory,p->id,getClk(),false);//deallocate from the memory
+        deallocate(memory,p->id);   
+    } 
+    else
+    {
+        printf("process id: %d stopped \n", p->id);
+        p->lastBlockingTime = getClk();
+        schedulerLog(logger,getClk(),p->id,STOPPED,p->arrivalTime,p->runningTime,p->remainingTime,p->waitingTime);
+        kill(p->forkingID,SIGSTOP); //process that has been removed from front should sleep
+        printf("Context switching occurred to pid = %d. \n",frontPriorityQueue(queueSTRN)->id);
+    }
+}
 int main(int argc, char * argv[])
 {
     signal(SIGUSR1, newProcessArrived);
@@ -344,6 +388,7 @@ int main(int argc, char * argv[])
         break;
     case STRN:
         queueSTRN = createPriorityQueue(PRIORITIZE_TIME);
+        printf("created queue for srtn\n");
         break;
     case RR:
         queueRR = createQueue();
@@ -362,7 +407,7 @@ int main(int argc, char * argv[])
         while(1){
             while(!isEmptyPriorityQueue(queueHPF))
             {
-                 doATestHPF(Q_ID_SMP,logger,memory);
+                 highestPriorityFirst(Q_ID_SMP,logger,memory);
             }
             if (finish)
                 break;
@@ -372,17 +417,10 @@ int main(int argc, char * argv[])
         while(1){
             while(!isEmptyPriorityQueue(queueSTRN))
             {
-                int prev = getClk();
-                printf("prev %d \n", prev);
-                // doATestHPF(Q_ID_SMP);
-                if(doSTRN(getClk(),queueSTRN,PCB)) exit(0);
-                //int now = getClk();
-                while (getClk() - prev < 1);
+                shortestRemainingTimeNext(Q_ID_SMP,memory,logger);
             }
             if (finish)
                 break;
-            else
-                sleep;
         }
         break;
     case RR:
