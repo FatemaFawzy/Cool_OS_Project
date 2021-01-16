@@ -1,7 +1,7 @@
 #include "headers.h"
 #include "queue.c"
 
-
+int shmid;
 void clearResources(int);
 void sendNewProcess(int shmid, processData processToBeSent)
 {
@@ -39,7 +39,7 @@ int main()
     signal(SIGINT, clearResources);
     // TODO Initialization
     // 1. Read the input files.
-    FILE* inputFile = fopen("/home/grey/Documents/University/OS/Cool_OS_Project/project/Phase 1 (Scheduler)/code/processes.txt","r");
+    FILE* inputFile = fopen("/home/mariam/OS_Project/Cool_OS_Project/project/Phase 1 (Scheduler)/code/processes.txt","r");
     if (inputFile == NULL ) 
     {   
         printf("Error! Could not open processes file\n"); 
@@ -59,20 +59,21 @@ int main()
         scanf("%d", &quantum);  
     }
     // 3. Initiate and create the scheduler and clock processes.
-    int clockPID = fork(), schedulerPID = fork(), stat_loc_sched, stat_loc;
+    int clockPID = fork(), stat_loc_sched, stat_loc;
     
     if (clockPID == -1)
   	    perror("error in fork");	
     else if (clockPID == 0)
     {
         printf("clock \n");
-	   execl("/home/grey/Documents/University/OS/Cool_OS_Project/project/Phase 1 (Scheduler)/code/clk.o", "clk.o", NULL);
+	   execl("/home/mariam/OS_Project/Cool_OS_Project/project/Phase 1 (Scheduler)/code/clk.o", "clk.o", NULL);
     }
+    int schedulerPID = fork();
     if (schedulerPID == -1)
     perror("error in fork");
     else if (schedulerPID == 0)
     {
-       execl("/home/grey/Documents/University/OS/Cool_OS_Project/project/Phase 1 (Scheduler)/code/scheduler.o", "scheduler.o", NULL); 
+       execl("/home/mariam/OS_Project/Cool_OS_Project/project/Phase 1 (Scheduler)/code/scheduler.o", "scheduler.o", NULL); 
     }
 
 
@@ -88,11 +89,11 @@ int main()
 
     key_t shm_ID;
 	shm_ID = ftok("keyfile",150);
-    int shmid = shmget(77, sizeof(processData), IPC_CREAT | 0644);
+    shmid = shmget(77, sizeof(processData), IPC_CREAT | 0644);
     if (shmid == -1)
     {
         perror("Error in create gen");
-        printf(" 1: %d , 2: %d \n", shmid);
+        printf(" 1: %d \n", shmid);
         exit(-1);
     }
     else
@@ -143,19 +144,15 @@ int main()
     processData * processToBeSent;
     for (int i = 0; i < sizeOfQueue; i++)
     {
-        now = getClk();
-        while (now < processQueue->front->data->arrivalTime)
-        {
-            now = getClk();
-        }
-        //printf("Now send process number %d at time %d \n", i,getClk());
+        while (getClk() < processQueue->front->data->arrivalTime);
+        printf("Now send process number %d at time %d \n", i,getClk());
         //if we reach this point, then we got to/passed the arrival time of the process
         processToBeSent = dequeueQueue(processQueue);
         if (processToBeSent != NULL)
         {
             sendNewProcess(shmid, *processToBeSent);
             kill(schedulerPID,SIGUSR1);
-            printf("Data to be sent %d %d %d %d \n", processToBeSent->id, processToBeSent->arrivalTime, processToBeSent->runningTime, processToBeSent->priority);
+            //printf("Data to be sent %d %d %d %d \n", processToBeSent->id, processToBeSent->arrivalTime, processToBeSent->runningTime, processToBeSent->priority);
         }
         //printf("-------------------- \n");
     }
@@ -171,4 +168,5 @@ int main()
 void clearResources(int signum)
 {
     //TODO Clears all resources in case of interruption
+    shmctl(shmid, IPC_RMID, (struct shmid_ds *)0);
 }

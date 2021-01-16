@@ -35,6 +35,7 @@ typedef struct
     int remainingTime;
     int waitingTime; 
     int lastBlockingTime;
+    int forkingID;
 } processData;
 
 

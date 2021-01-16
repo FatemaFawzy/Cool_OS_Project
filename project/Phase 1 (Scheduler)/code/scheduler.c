@@ -5,6 +5,10 @@
 
 int shmid;
 struct Hash* PCB;
+struct PriorityQueue* queueHPF;
+struct PriorityQueue* queueSTRN;
+struct Queue* queueRR;
+schedulingAlgorithm type;
 bool finish = false;
 
 void insertProcessPriorityQueue(struct PriorityQueue* queue,processData* process,int clock)
@@ -32,13 +36,6 @@ bool doHPF(int clock,struct PriorityQueue* queue,struct Hash* PCB)
     // Initializing
     static int processessCounter = 0;
     static processData* process = NULL;
-    //Check if new process comes 
-    ///TODO:(SHOULD BE REPLACED)
-    insertProcessPriorityQueue(queue,hashFind(PCB,1),clock);
-    insertProcessPriorityQueue(queue,hashFind(PCB,2),clock);
-    insertProcessPriorityQueue(queue,hashFind(PCB,3),clock);
-    insertProcessPriorityQueue(queue,hashFind(PCB,4),clock);
-    insertProcessPriorityQueue(queue,hashFind(PCB,5),clock); 
 
     if(!isEmptyHash(PCB)){
         // Get current process & process info
@@ -212,7 +209,18 @@ void newProcessArrived(int signum)
     temp->waitingTime = newProcess.waitingTime;
     printf("Received %d %d %d %d \n", temp->id, temp->arrivalTime, temp->runningTime, temp->priority);
     printf("--------------- \n");
-    hashInsert(PCB,newProcess.id,&newProcess);
+    switch (type)
+    {
+    case HPF:
+        enqueuePriorityQueue(queueHPF,temp);
+        break;
+    case STRN:
+        enqueuePriorityQueue(queueSTRN,temp);
+        break;
+    case RR:
+        enqueueQueue(queueRR, temp);
+        break;
+    }
     signal(SIGUSR1, newProcessArrived);   
 }
 void noMoreProcesses(int signum)
@@ -240,7 +248,7 @@ void sendProcessParameters(int Q_ID_SMP, int burstTime, int startTime,int waitin
         perror("Errror in sending the initial data to the scheduler.");
 }
 
-int forkANewProcess()
+int forkANewProcess(processData* p)
 {
     int newProcessPID = fork();
     
@@ -250,19 +258,30 @@ int forkANewProcess()
     {
         printf("newProcess \n");
         //TODO change the full path
-	    execl("/home/grey/Documents/University/OS/Cool_OS_Project/project/Phase 1 (Scheduler)/code/process.o", "process.o", NULL);
+	    execl("/home/mariam/OS_Project/Cool_OS_Project/project/Phase 1 (Scheduler)/code/process.o", "process.o", NULL);
     }
-    else return newProcessPID;
+    else 
+    {
+        p->forkingID = newProcessPID;
+        return newProcessPID;
+    }
 }
-// void doATestHPF(int Q_ID_SMP)
-// {
-//     int newProcessPID=forkANewProcess();
-//     sendProcessParameters(Q_ID_SMP,12,10,0,newProcessPID);
-// }
+ void doATestHPF(int Q_ID_SMP)
+ {
+    processData* p = dequeuePriorityQueue(queueHPF);
+    int stat_loc;
+    int newProcessPID=forkANewProcess(p);
+    hashInsert(PCB, p->id, p);
+    sendProcessParameters(Q_ID_SMP,p->runningTime, getClk(),p->waitingTime,newProcessPID);
+    wait(&stat_loc);
+    hashRemove(PCB, p->id);
+ }
 int main(int argc, char * argv[])
 {
     signal(SIGUSR1, newProcessArrived);
     signal(SIGUSR2, noMoreProcesses);
+     initClk();
+     printf("initial %d ", getClk());
     //Create a message Queue for sending the initial data(scheduling type, parameters,number of processes)
     int INITIAL_MSG_Q_ID = msgget(55, 0666 | IPC_CREAT); 
 
@@ -295,21 +314,18 @@ int main(int argc, char * argv[])
         perror("Error in create the message queue of schedulerIsMessagingProcess");
         exit(-1);
     }
-    //initClk();
     //schedulingAlgorithm type = RR;
     schedulingType s = receiveSchedulingType(INITIAL_MSG_Q_ID);
-    schedulingAlgorithm type = s.algo;
+    type = s.algo;
     int quantum = s.quantum;
     PCB = createHash(s.numProcesses * 3);
     printf("alg %d, q %d , n %d \n", type, s.quantum, s.numProcesses);
 
     //Creating the appropriate queue for the choosen algorithm
-    struct PriorityQueue* queueHPF;
-    struct PriorityQueue* queueSTRN;
-    struct Queue* queueRR;
     switch (type)
     {
     case HPF:
+
         queueHPF = createPriorityQueue(PRIORITIZE_PRIORITY);
         break;
     case STRN:
@@ -322,36 +338,72 @@ int main(int argc, char * argv[])
 
     //Should give the hash a size
     ///TODO: ( Replace with getcloack() )
-    int clock = 0; 
+    int clock = getClk(); 
     //printf("hash size %d \n", PCB->count);
 
     //Sarting the scheduling process
-    while(1){
-        while(!isEmptyHash(PCB))
-        {
-            switch (type)
+    switch (type)
+    {
+    case HPF:
+        while(1){
+            while(!isEmptyPriorityQueue(queueHPF))
             {
-            case HPF:
-                // doATestHPF(Q_ID_SMP);
-                if(doHPF(clock,queueHPF,PCB)) exit(0);
-                break;
-            case STRN:
-                if(doSTRN(clock,queueSTRN,PCB)) exit(0);
-                break;
-            case RR:
-                if(doRR(clock,queueRR,PCB,quantum)) exit(0);
-                break;
+                //int prev = getClk();
+                //bool flag = false;
+                //printf("prev %d \n", prev);
+                 doATestHPF(Q_ID_SMP);
+                //if(doHPF(getClk(),queueHPF,PCB)) exit(0);
+                //int now = getClk();
+                //while (getClk() == prev);
             }
-            ///TODO: Replace it with the original clock
-            // Clock incearsing
-            clock++;
+            if (finish)
+                break;
+            else
+                sleep;
         }
-        if (finish)
-            break;
-        else
-            sleep;
+        break;
+    case STRN:
+        while(1){
+            while(!isEmptyPriorityQueue(queueSTRN))
+            {
+                int prev = getClk();
+                printf("prev %d \n", prev);
+                // doATestHPF(Q_ID_SMP);
+                if(doSTRN(getClk(),queueSTRN,PCB)) exit(0);
+                //int now = getClk();
+                while (getClk() - prev < 1);
+            }
+            if (finish)
+                break;
+            else
+                sleep;
+        }
+        break;
+    case RR:
+        while(1){
+            while(!isEmptyQueue(queueRR))
+            {
+                int prev = getClk();
+                printf("prev %d \n", prev);
+                // doATestHPF(Q_ID_SMP);
+                if(doRR(getClk(),queueRR,PCB, quantum)) exit(0);
+                int now = getClk();
+                while (now - prev < 1)
+                {
+                    printf("now %d \n", now);
+                    now = getClk();
+                }
+            }
+            if (finish)
+                break;
+            else
+                sleep;
+        }
+        break;
+    default:
+        break;
     }
 
     return 0;
-   // destroyClk(true);
+    destroyClk(true);
 }
