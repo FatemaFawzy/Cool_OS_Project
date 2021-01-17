@@ -328,7 +328,9 @@ processData* checkOnWaitingList(struct Queue* waitingList, struct PriorityQueue*
     }
     if (j != waitingList->size) //found a process fitting in memory
     {
-        return dequeueQueue(waitingList);
+        processData* canRunNow = dequeueQueue(waitingList);
+        canRunNow->waitingTime += (getClk() - canRunNow->enteredWaitingListTime);
+        return canRunNow;
     }
     else
     {
@@ -349,6 +351,7 @@ void shortestRemainingTimeNext(int Q_ID_SMP,Memory* memory, Logger* logger)
         if (address == NULL)
         {
             printf("pid %d did not allocate \n", p->id);
+            p->enteredWaitingListTime = getClk();
             p = findProcessToRun(Q_ID_SMP,memory,logger,newProcessPID,address);
         }
         else

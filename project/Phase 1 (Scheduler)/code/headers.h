@@ -38,7 +38,7 @@ typedef struct
     int forkingID;
     int startTime;
     int idleTime;
-    bool inWaitingList;
+    int enteredWaitingListTime;
 } processData;
 
 
