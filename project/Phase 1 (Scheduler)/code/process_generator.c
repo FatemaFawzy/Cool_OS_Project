@@ -133,6 +133,7 @@ int main()
         p->lastBlockingTime = 0;
         p->startTime = 0;
         p->idleTime = 0;
+        p->inWaitingList = false;
         //printf("%d %d %d %d \n", p->id, p->arrivalTime, p->runningTime, p->priority);
         inserted = enqueueQueue(processQueue, p);
         if (!inserted)

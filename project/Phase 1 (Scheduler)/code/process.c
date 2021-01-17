@@ -23,6 +23,8 @@ void recieveProcessParameters(int Q_ID_SMP)
     burstTime=messageReceived.parameters.burstTime;
     startTime=messageReceived.parameters.startTime;
     waitingTime=messageReceived.parameters.waitingTime;
+    printf("bT: %d, ST: %d, WT: %d\n",burstTime,startTime,waitingTime );
+    
 }
 void continueMe(int signum)
 {
