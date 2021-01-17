@@ -100,6 +100,24 @@ int main()
     {
         printf("Shared memory ID p gen: %d \n", shmid);
     }
+     
+    union Semun semun; 
+    int sem1 = semget(SEM_ID_PG_TO_SCH, 1, 0666 | IPC_CREAT);
+
+    if (sem1 == -1)
+    {
+        perror("Error in create sem");
+        exit(-1);
+    }
+
+    semun.val = 1; /* initial value of the semaphore, Binary semaphore */
+    
+    if (semctl(sem1, 0, SETVAL, semun) == -1)
+    {
+        perror("Error in semctl");
+        exit(-1);
+    }
+    
     // 4. Use this function after creating the clock process to initialize clock
     initClk();
     // TODO Generation Main Loop
@@ -153,6 +171,7 @@ int main()
         processToBeSent = dequeueQueue(processQueue);
         if (processToBeSent != NULL)
         {
+            down(sem1);
             sendNewProcess(shmid, *processToBeSent);
             kill(schedulerPID,SIGUSR1);
             //printf("Data to be sent %d %d %d %d \n", processToBeSent->id, processToBeSent->arrivalTime, processToBeSent->runningTime, processToBeSent->priority);

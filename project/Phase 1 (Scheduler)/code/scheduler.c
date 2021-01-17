@@ -13,6 +13,7 @@ struct Queue* queueRR;
 schedulingAlgorithm type;
 bool finish = false;
 struct Queue* waitingList;
+int sem1;
 
 void insertProcessPriorityQueue(struct PriorityQueue* queue,processData* process,int clock)
 {
@@ -187,6 +188,7 @@ void newProcessArrived(int signum)
 {
     printf("Entered sig handler in scheduler \n");
     processData newProcess = receiveNewProcess(shmid);
+    up(sem1);
     processData* temp = (processData*)malloc(sizeof(processData));
     temp->id = newProcess.id;
     temp->arrivalTime = newProcess.arrivalTime;
@@ -297,7 +299,7 @@ processData* findProcessToRunSTRN(int Q_ID_SMP, Memory* memory, Logger* logger, 
         hashInsert(PCB, p->id, p); 
         sendProcessParameters(Q_ID_SMP,p->runningTime, getClk(),0,newProcessPID); 
     }
-    else
+    else if (p != NULL)
     {
         p->idleTime += getClk() - p->lastBlockingTime;
         printf("IDLE TIME IN SCHEDULER %d \n",p->idleTime);
@@ -416,7 +418,7 @@ processData* findProcessToRunRR(int Q_ID_SMP, Memory* memory, Logger* logger, in
         hashInsert(PCB, p->id, p); 
         sendProcessParameters(Q_ID_SMP,p->runningTime, getClk(),0,newProcessPID); 
     }
-    else
+    else if (p != NULL)
     {
         p->idleTime += getClk() - p->lastBlockingTime;
         printf("IDLE TIME IN SCHEDULER %d \n",p->idleTime);
@@ -444,7 +446,7 @@ void roundRobin(int Q_ID_SMP,Memory* memory, Logger* logger, int quantum)
         {
             printf("pid %d did not allocate \n", p->id);
             p->enteredWaitingListTime = getClk();
-            //p = findProcessToRunRR(Q_ID_SMP,memory,logger,newProcessPID,address);
+            p = findProcessToRunRR(Q_ID_SMP,memory,logger,newProcessPID,address);
         }
         else
         {
@@ -474,10 +476,8 @@ void roundRobin(int Q_ID_SMP,Memory* memory, Logger* logger, int quantum)
     {
         int startQuantum = getClk();
         while (((p->remainingTime = p->runningTime - getClk() + p->startTime + p->idleTime) > 0) && (getClk() - startQuantum < quantum));
-        //p->remainingTime =  p->runningTime - getClk() + p->startTime + p->idleTime;
         if (queueRR->size != 1 || p->remainingTime == 0)
         {
-            //p->remainingTime = p->remainingTime == 0 ? 0 : startQuantum + quantum;
             p->remainingTime =  p->runningTime - getClk() + p->startTime + p->idleTime;
             break;
         }    
@@ -493,11 +493,11 @@ void roundRobin(int Q_ID_SMP,Memory* memory, Logger* logger, int quantum)
         deallocate(memory,p->id); 
         if(!isEmptyQueue(waitingList))
         {
-            //processData* candidate = checkOnWaitingList(waitingList, p);
-            //if (candidate != NULL)
-            //{
-              //  enqueuePriorityQueue(queueSRTN, candidate);
-            //}
+            processData* candidate = checkOnWaitingList(waitingList, p);
+            if (candidate != NULL)
+            {
+                enqueueQueue(queueRR, candidate);
+            }
         }
     } 
     else
@@ -553,6 +553,16 @@ int main(int argc, char * argv[])
         perror("Error in create the message queue of schedulerIsMessagingProcess");
         exit(-1);
     }
+
+    union Semun semun; 
+    sem1 = semget(SEM_ID_PG_TO_SCH, 1, 0666 | IPC_CREAT);
+
+    if (sem1 == -1)
+    {
+        perror("Error in create sem");
+        exit(-1);
+    }
+
     //schedulingAlgorithm type = RR;
     schedulingType s = receiveSchedulingType(INITIAL_MSG_Q_ID);
     type = s.algo;
@@ -578,9 +588,7 @@ int main(int argc, char * argv[])
     }
 
     //Should give the hash a size
-    ///TODO: ( Replace with getcloack() )
     int clock = getClk(); 
-    //printf("hash size %d \n", PCB->count);
 
     //Sarting the scheduling process
     switch (type)
