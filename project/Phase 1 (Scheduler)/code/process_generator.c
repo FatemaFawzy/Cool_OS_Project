@@ -1,12 +1,12 @@
 #include "headers.h"
 #include "queue.c"
 
-int shmid;
+int shmid, INITIAL_MSG_Q_ID, sem1, schedulerPID;
 void clearResources(int);
 void sendNewProcess(int shmid, processData processToBeSent)
 {
     processData* shmaddr = shmat(shmid, (void *)0, 0);
-    if (shmaddr == -1)
+    if (shmaddr == (void*)-1)
     {
         perror("Error in attach in writer");
         exit(-1);
@@ -68,7 +68,7 @@ int main()
         printf("clock \n");
 	   execl("/home/mariam/OS_Project/Cool_OS_Project/project/Phase 1 (Scheduler)/code/clk.o", "clk.o", NULL);
     }
-    int schedulerPID = fork();
+    schedulerPID = fork();
     if (schedulerPID == -1)
     perror("error in fork");
     else if (schedulerPID == 0)
@@ -78,7 +78,7 @@ int main()
 
 
     //Create a message Queue for sending the initial data(scheduling type, parameters,number of processes)
-    int INITIAL_MSG_Q_ID = msgget(55, 0666 | IPC_CREAT); 
+    INITIAL_MSG_Q_ID = msgget(55, 0666 | IPC_CREAT); 
 
     //Handle unexpected errors by notifying the user and shutting down
     if (INITIAL_MSG_Q_ID == -1)
@@ -102,7 +102,7 @@ int main()
     }
      
     union Semun semun; 
-    int sem1 = semget(SEM_ID_PG_TO_SCH, 1, 0666 | IPC_CREAT);
+    sem1 = semget(SEM_ID_PG_TO_SCH, 1, 0666 | IPC_CREAT);
 
     if (sem1 == -1)
     {
@@ -156,6 +156,7 @@ int main()
         if (!inserted)
             printf("Reached max number of processes!"); 
     }
+    
     // 6. Send the information to the scheduler at the appropriate time.
     bool sentAllProcesses = false;
     int counter = 0;
@@ -184,7 +185,6 @@ int main()
     // 7. Clear clock resources
     schedulerPID = wait(&stat_loc_sched);
     destroyClk(true);
-    // clockPID = wait(&stat_loc);
     
 }
 
@@ -192,4 +192,8 @@ void clearResources(int signum)
 {
     //TODO Clears all resources in case of interruption
     shmctl(shmid, IPC_RMID, (struct shmid_ds *)0);
+    msgctl(INITIAL_MSG_Q_ID, IPC_RMID, (struct msqid_ds *)0); 
+    semctl(sem1, 1, IPC_RMID);
+    kill(schedulerPID, SIGINT);
+
 }

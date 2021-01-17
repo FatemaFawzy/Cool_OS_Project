@@ -5,7 +5,6 @@
 #include "memory.c"
 #define PROCESSES_NUMBER 5
 
-int shmid;
 struct Hash* PCB;
 struct PriorityQueue* queueHPF;
 struct PriorityQueue* queueSRTN;
@@ -13,7 +12,7 @@ struct Queue* queueRR;
 schedulingAlgorithm type;
 bool finish = false;
 struct Queue* waitingList;
-int sem1;
+int sem1, Q_ID_SMP, shmid;
 
 void insertProcessPriorityQueue(struct PriorityQueue* queue,processData* process,int clock)
 {
@@ -35,7 +34,7 @@ void insertProcessQueue(struct Queue* queue,processData* process,int clock)
 }
 
 // Highest  First
-bool doHPF(int clock,struct PriorityQueue* queue,struct Hash* PCB)
+/*bool doHPF(int clock,struct PriorityQueue* queue,struct Hash* PCB)
 {
     // Initializing
     static int processessCounter = 0;
@@ -69,10 +68,10 @@ bool doHPF(int clock,struct PriorityQueue* queue,struct Hash* PCB)
     }
 
     return false;
-}
+}*/
 
 // Shortest Time Ramining Next
-bool doSTRN(int clock,struct PriorityQueue* queue,struct Hash* PCB){
+/*bool doSTRN(int clock,struct PriorityQueue* queue,struct Hash* PCB){
     // Initializing
     static processData* prev = NULL; 
     static int processessCounter = 0;
@@ -108,10 +107,10 @@ bool doSTRN(int clock,struct PriorityQueue* queue,struct Hash* PCB){
     }
 
     return false;
-}
+}*/
   
 // Round Roben
-bool doRR(int clock,struct Queue* queue,struct Hash* PCB, unsigned int quantum)
+/*bool doRR(int clock,struct Queue* queue,struct Hash* PCB, unsigned int quantum)
 {
     // Initializing
     static int processessCounter = 0;
@@ -160,11 +159,11 @@ bool doRR(int clock,struct Queue* queue,struct Hash* PCB, unsigned int quantum)
     }
 
     return false;
-}
+}*/
 processData receiveNewProcess(int shmid)
 {
     processData *shmaddr = shmat(shmid, (void *)0, 0);
-    if (shmaddr == -1)
+    if (shmaddr == (void*)-1)
     {
         perror("Error in attach in reader");
         exit(-1);
@@ -512,10 +511,15 @@ void roundRobin(int Q_ID_SMP,Memory* memory, Logger* logger, int quantum)
     }
 
 }
+void cleanUp(int signum)
+{
+    msgctl(Q_ID_SMP, IPC_RMID, (struct msqid_ds *)0);
+}
 int main(int argc, char * argv[])
 {
     signal(SIGUSR1, newProcessArrived);
     signal(SIGUSR2, noMoreProcesses);
+    signal (SIGINT, cleanUp);
     initClk();
     waitingList = createQueue();
     Logger *logger=createLogger();
@@ -546,7 +550,7 @@ int main(int argc, char * argv[])
     }
 
     //Message Queue for the processes
-    int Q_ID_SMP = msgget(Q_ID_SMP_KEY, 0666 | IPC_CREAT); 
+    Q_ID_SMP = msgget(Q_ID_SMP_KEY, 0666 | IPC_CREAT); 
     //Handle unexpected errors by notifying the user and shutting down
     if (Q_ID_SMP == -1)
     {
@@ -627,14 +631,24 @@ int main(int argc, char * argv[])
         break;
     }
     //This should be called after all the processes have finished
-    schedulerPerf(logger);
+    msgctl(Q_ID_SMP, IPC_RMID, (struct msqid_ds *)0);
+    schedulerPerf(logger, getClk());
     destroyLogger(logger);
     destroyMemory(memory);
-    destroyQueue(waitingList);
-    destroyQueue(queueRR);
-    destroyPriorityQueue(queueSRTN);
-    destroyPriorityQueue(queueHPF);
-    destroyClk(true);
+    switch (type)
+    {
+    case HPF:
 
+        destroyPriorityQueue(queueHPF);
+        break;
+    case STRN:
+        destroyPriorityQueue(queueSRTN);
+        break;
+    case RR:
+        destroyQueue(queueRR);
+        break;
+    }
+    destroyQueue(waitingList);
+    destroyClk(true);
     return 0;
 }
