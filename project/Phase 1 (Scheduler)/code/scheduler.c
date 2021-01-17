@@ -304,6 +304,17 @@ processData* findProcessToRun(int Q_ID_SMP, Memory* memory, Logger* logger, int 
         hashInsert(PCB, p->id, p); 
         sendProcessParameters(Q_ID_SMP,p->runningTime, getClk(),0,newProcessPID); 
     }
+    else
+    {
+        p->idleTime += getClk() - p->lastBlockingTime;
+        printf("IDLE TIME IN SCHEDULER %d \n",p->idleTime);
+        p->waitingTime += p->idleTime;
+        printf("process id: %d resumed \n", p->id);
+        sendProcessParameters(Q_ID_SMP,p->runningTime, p->startTime,p->idleTime,p->forkingID);
+        schedulerLog(logger,getClk(),p->id,RESUMED,p->arrivalTime,p->runningTime,p->remainingTime,p->waitingTime);
+        kill(p->forkingID,SIGCONT);
+    }
+    
     return p;
 }
 processData* checkOnWaitingList(struct Queue* waitingList, struct PriorityQueue* queueSTRN, processData* justDequeued)
@@ -337,8 +348,8 @@ void shortestRemainingTimeNext(int Q_ID_SMP,Memory* memory, Logger* logger)
         MemoryLocation* address= allocate(memory,p->id,p->memorySize);
         if (address == NULL)
         {
-            //printf("pid %d did not allocate \n", p->id);
-            //p = findProcessToRun(Q_ID_SMP,memory,logger,newProcessPID,address);
+            printf("pid %d did not allocate \n", p->id);
+            p = findProcessToRun(Q_ID_SMP,memory,logger,newProcessPID,address);
         }
         else
         {
