@@ -24,6 +24,7 @@ typedef short bool;
 #define SHKEY 300
 #define Q_ID_SMP_KEY 99
 #define SEM_ID_PG_TO_SCH 44
+#define SEM_ID_PG_TO_SCH_FIN 88
 
 typedef struct
 {

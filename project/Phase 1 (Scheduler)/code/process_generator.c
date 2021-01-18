@@ -1,7 +1,7 @@
 #include "headers.h"
 #include "queue.c"
 
-int shmid, INITIAL_MSG_Q_ID, sem1, schedulerPID;
+int shmid, INITIAL_MSG_Q_ID, sem1, schedulerPID, sem2;
 void clearResources(int);
 void sendNewProcess(int shmid, processData processToBeSent)
 {
@@ -103,16 +103,22 @@ int main()
      
     union Semun semun; 
     sem1 = semget(SEM_ID_PG_TO_SCH, 1, 0666 | IPC_CREAT);
+    sem2 = semget(SEM_ID_PG_TO_SCH_FIN, 1, 0666 | IPC_CREAT);
 
-    if (sem1 == -1)
+    if (sem1 == -1 || sem2 == -1)
     {
         perror("Error in create sem");
         exit(-1);
     }
-
     semun.val = 1; /* initial value of the semaphore, Binary semaphore */
     
     if (semctl(sem1, 0, SETVAL, semun) == -1)
+    {
+        perror("Error in semctl");
+        exit(-1);
+    }
+    semun.val = 0;
+    if (semctl(sem2, 0, SETVAL, semun) == -1)
     {
         perror("Error in semctl");
         exit(-1);
@@ -180,6 +186,11 @@ int main()
         //printf("-------------------- \n");
     }
     // sleep(60);
+    if (sizeOfQueue != 0)
+    {
+        printf("show down now \n");
+        down(sem2);
+    }
     kill(schedulerPID,SIGUSR2);
     printf("done in p gen\n");
     // 7. Clear clock resources
@@ -194,6 +205,7 @@ void clearResources(int signum)
     shmctl(shmid, IPC_RMID, (struct shmid_ds *)0);
     msgctl(INITIAL_MSG_Q_ID, IPC_RMID, (struct msqid_ds *)0); 
     semctl(sem1, 1, IPC_RMID);
+    semctl(sem2, 1, IPC_RMID);
     kill(schedulerPID, SIGINT);
 
 }

@@ -12,7 +12,7 @@ struct Queue* queueRR;
 schedulingAlgorithm type;
 bool finish = false;
 struct Queue* waitingList;
-int sem1, Q_ID_SMP, shmid;
+int sem1, sem2, Q_ID_SMP, shmid;
 
 void insertProcessPriorityQueue(struct PriorityQueue* queue,processData* process,int clock)
 {
@@ -217,6 +217,8 @@ void newProcessArrived(int signum)
         enqueueQueue(queueRR, temp);
         break;
     }
+    printf("show up now \n");
+    up(sem2);
     signal(SIGUSR1, newProcessArrived);   
 }
 void noMoreProcesses(int signum)
@@ -560,8 +562,9 @@ int main(int argc, char * argv[])
 
     union Semun semun; 
     sem1 = semget(SEM_ID_PG_TO_SCH, 1, 0666 | IPC_CREAT);
+    sem2 = semget(SEM_ID_PG_TO_SCH_FIN, 1, 0666 | IPC_CREAT);
 
-    if (sem1 == -1)
+    if (sem1 == -1 || sem2 == -1)
     {
         perror("Error in create sem");
         exit(-1);
@@ -638,7 +641,6 @@ int main(int argc, char * argv[])
     switch (type)
     {
     case HPF:
-
         destroyPriorityQueue(queueHPF);
         break;
     case STRN:
