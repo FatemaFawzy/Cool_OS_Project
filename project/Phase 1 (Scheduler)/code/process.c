@@ -14,7 +14,7 @@ void recieveProcessParameters(int Q_ID_SMP)
     if (rec_val == -1)
         perror("Error in receiving the process parametrs from the message Q");
 
-    burstTime=messageReceived.parameters.burstTime;
+    burstTime=messageReceived.parameters.burstTime; //running time
     startTime=messageReceived.parameters.startTime;
     waitingTime=messageReceived.parameters.waitingTime;
     printf("bT: %d, ST: %d, WT: %d\n",burstTime,startTime,waitingTime );

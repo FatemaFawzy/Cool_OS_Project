@@ -2,6 +2,7 @@
 #include "queue.c"
 
 int shmid, INITIAL_MSG_Q_ID, sem1, schedulerPID, sem2;
+bool start = false;
 void clearResources(int);
 void sendNewProcess(int shmid, processData processToBeSent)
 {
@@ -34,9 +35,16 @@ void sendSchedulingType(int INITIAL_MSG_Q_ID, schedulingAlgorithm s, int quantum
     if (send_val == -1)
         perror("Errror in sending the initial data to the scheduler.");
 }
+void canStartSending(int signum)
+{
+    start = true;
+    printf("START \n");
+    signal(SIGHUP,canStartSending);
+}
 int main()
 {
     signal(SIGINT, clearResources);
+    signal(SIGHUP,canStartSending);
     // TODO Initialization
     // 1. Read the input files.
     FILE* inputFile = fopen("/home/mariam/OS_Project/Cool_OS_Project/project/Phase 1 (Scheduler)/code/processes.txt","r");
@@ -110,6 +118,7 @@ int main()
         perror("Error in create sem");
         exit(-1);
     }
+
     semun.val = 1; /* initial value of the semaphore, Binary semaphore */
     
     if (semctl(sem1, 0, SETVAL, semun) == -1)
@@ -117,12 +126,14 @@ int main()
         perror("Error in semctl");
         exit(-1);
     }
+
     semun.val = 0;
     if (semctl(sem2, 0, SETVAL, semun) == -1)
     {
         perror("Error in semctl");
         exit(-1);
     }
+
     
     // 4. Use this function after creating the clock process to initialize clock
     initClk();
@@ -168,6 +179,7 @@ int main()
     int sizeOfQueue = processQueue->size;
     sendSchedulingType(INITIAL_MSG_Q_ID, chosenAlgorithm, quantum, sizeOfQueue);
     processData * processToBeSent;
+    while(start == false);
     for (int i = 0; i < sizeOfQueue; i++)
     {
         while (getClk() < processQueue->front->data->arrivalTime);
@@ -202,5 +214,4 @@ void clearResources(int signum)
     semctl(sem1, 1, IPC_RMID);
     semctl(sem2, 1, IPC_RMID);
     kill(schedulerPID, SIGINT);
-
 }

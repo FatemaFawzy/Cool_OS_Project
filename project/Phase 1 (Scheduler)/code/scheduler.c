@@ -12,7 +12,7 @@ struct Queue* queueRR;
 schedulingAlgorithm type;
 bool finish = false;
 struct Queue* waitingList;
-int sem1, sem2, Q_ID_SMP, shmid;
+int sem1, sem2, sem3, Q_ID_SMP, shmid;
 
 /*void insertProcessPriorityQueue(struct PriorityQueue* queue,processData* process,int clock)
 {
@@ -342,7 +342,7 @@ void shortestRemainingTimeNext(int Q_ID_SMP,Memory* memory, Logger* logger)
     {
         p->idleTime += getClk() - p->lastBlockingTime;
         printf("IDLE TIME IN SCHEDULER %d \n",p->idleTime);
-        p->waitingTime += p->idleTime;
+        p->waitingTime += getClk() - p->lastBlockingTime;
         printf("process id: %d resumed \n", p->id);
         sendProcessParameters(Q_ID_SMP,p->runningTime, p->startTime,p->idleTime,p->forkingID);
         schedulerLog(logger,getClk(),p->id,RESUMED,p->arrivalTime,p->runningTime,p->remainingTime,p->waitingTime);
@@ -446,7 +446,7 @@ void roundRobin(int Q_ID_SMP,Memory* memory, Logger* logger, int quantum)
     {
         p->idleTime += getClk() - p->lastBlockingTime;
         printf("IDLE TIME IN SCHEDULER %d \n",p->idleTime);
-        p->waitingTime += p->idleTime;
+        p->waitingTime += getClk() - p->lastBlockingTime;
         printf("process id: %d resumed \n", p->id);
         sendProcessParameters(Q_ID_SMP,p->runningTime, p->startTime,p->idleTime,p->forkingID);
         schedulerLog(logger,getClk(),p->id,RESUMED,p->arrivalTime,p->runningTime,p->remainingTime,p->waitingTime);
@@ -561,7 +561,7 @@ int main(int argc, char * argv[])
     Logger *logger=createLogger();
     Memory *memory=createMemory();
     printf("initial %d ", getClk());
-    //Create a message Queue for sending the initial data(scheduling type, parameters,number of processes)
+    //Create a message Queue for receiving the initial data(scheduling type, parameters,number of processes)
     int INITIAL_MSG_Q_ID = msgget(55, 0666 | IPC_CREAT); 
 
     //Handle unexpected errors by notifying the user and shutting down
@@ -584,7 +584,7 @@ int main(int argc, char * argv[])
     {
         printf("Shared memory ID scheduler sched: %d \n", shmid);
     }
-
+    kill(getppid(),SIGHUP);
     //Message Queue for the processes
     Q_ID_SMP = msgget(Q_ID_SMP_KEY, 0666 | IPC_CREAT); 
     //Handle unexpected errors by notifying the user and shutting down
@@ -626,7 +626,6 @@ int main(int argc, char * argv[])
         queueRR = createQueue();
         break;
     }
-
     //Should give the hash a size
     int clock = getClk(); 
 
