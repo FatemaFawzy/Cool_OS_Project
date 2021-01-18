@@ -129,7 +129,6 @@ int main()
     // TODO Generation Main Loop
     // 5. Create a data structure for processes and provide it with its parameters.
     struct Queue* processQueue = createQueue();
-    //printf("1-Size of queue: %d \n", processQueue->size);
     bool inserted = false;
     processData *p;
     char * str_operation;
@@ -157,7 +156,6 @@ int main()
         p->lastBlockingTime = 0;
         p->startTime = 0;
         p->idleTime = 0;
-        //printf("%d %d %d %d \n", p->id, p->arrivalTime, p->runningTime, p->priority);
         inserted = enqueueQueue(processQueue, p);
         if (!inserted)
             printf("Reached max number of processes!"); 
@@ -181,11 +179,8 @@ int main()
             down(sem1);
             sendNewProcess(shmid, *processToBeSent);
             kill(schedulerPID,SIGUSR1);
-            //printf("Data to be sent %d %d %d %d \n", processToBeSent->id, processToBeSent->arrivalTime, processToBeSent->runningTime, processToBeSent->priority);
         }
-        //printf("-------------------- \n");
     }
-    // sleep(60);
     if (sizeOfQueue != 0)
     {
         printf("show down now \n");
