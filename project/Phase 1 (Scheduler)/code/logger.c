@@ -152,25 +152,14 @@ void schedulerPerf(Logger* self, int time)
     float avgWaiting=self->sumWaiting/self->listSize;
     float stdWTA=computeStdWTA(self,avgWTA);
 
-    char avgWTAString[16],avgWaitingString[16],stdWTAString[16],CPUUtilString[16];
-    snprintf(CPUUtilString, sizeof(CPUUtilString), "%.2f", CPUUtil);
-    snprintf(avgWTAString, sizeof(avgWTAString), "%.2f", avgWTA);
-    snprintf(avgWaitingString, sizeof(avgWaitingString), "%.2f", avgWaiting);
-    snprintf(stdWTAString, sizeof(stdWTAString), "%.2f", stdWTA);
+    char avgWTAString[30],avgWaitingString[30],stdWTAString[30],CPUUtilString[30];
+    snprintf(CPUUtilString, sizeof(CPUUtilString), "CPU utilization = %.2f%%\n", CPUUtil);
+    snprintf(avgWTAString, sizeof(avgWTAString), "Avg WTA = %.2f\n", avgWTA);
+    snprintf(avgWaitingString, sizeof(avgWaitingString), "Avg Waiting %.2f\n", avgWaiting);
+    snprintf(stdWTAString, sizeof(stdWTAString), "Std WTA %.2f\n", stdWTA);
 
-
-    char* CPUUtilizationMessage=concat("CPU utilization = ",CPUUtilString);  
-    char* avgWTAMessage=concat("Avg WTA = ",avgWTAString);
-    char* avgWaitingMessage=concat("Avg Waiting = ",avgWaitingString);
-    char* stdWTAMessage=concat("Std WTA = ",stdWTAString);
-
-    char* CPUUtilizationMessageN=concat(CPUUtilizationMessage,"\n");free(CPUUtilizationMessage);
-    char* avgWTAMessageN=concat(avgWTAMessage,"\n");free(avgWTAMessage);
-    char* avgWaitingMessageN=concat(avgWaitingMessage,"\n");free(avgWaitingMessage);
-    char* stdWTAMessageN=concat(stdWTAMessage,"\n");free(stdWTAMessage);
-
-    fputs(CPUUtilizationMessageN, self->perfFilePtr );free(CPUUtilizationMessageN);
-    fputs(avgWTAMessageN, self->perfFilePtr );free(avgWTAMessageN);
-    fputs(avgWaitingMessageN, self->perfFilePtr );free(avgWaitingMessageN);
-    fputs(stdWTAMessageN, self->perfFilePtr);free(stdWTAMessageN);
+    fputs(CPUUtilString, self->perfFilePtr );
+    fputs(avgWTAString, self->perfFilePtr );
+    fputs(avgWaitingString, self->perfFilePtr );
+    fputs(stdWTAString, self->perfFilePtr);
 }
