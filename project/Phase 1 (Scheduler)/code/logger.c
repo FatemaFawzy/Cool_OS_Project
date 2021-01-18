@@ -5,9 +5,9 @@ typedef struct{
     float sumWTA;
     float listWTA[MAX_SIZE];
     int listSize;
+    int TPRT;
     FILE *logFilePtr;
     FILE *perfFilePtr;
-    int TPRT;
 }Logger;
 
 // Conor (without allocation)
@@ -56,7 +56,7 @@ float computeStdWTA(Logger* self,float avgWTA)
     float std=0.0;
     for(int i=0;i<self->listSize;i++)
         std+=(self->listWTA[i]-avgWTA)*(self->listWTA[i]-avgWTA);
-    return findSQRT(std/self->listSize);
+    return findSQRT((float)std/self->listSize);
 }
 
 void schedulerLog(Logger* self,int time,int processID,
@@ -147,30 +147,30 @@ ProcessState state,int arr,int total,int remain,int wait)
 
 void schedulerPerf(Logger* self, int time)
 {
-    //float CPUUtil= ((float)self->TPRT/time)*100;
+    float CPUUtil= ((float)self->TPRT/time)*100;
     float avgWTA=self->sumWTA/self->listSize;
     float avgWaiting=self->sumWaiting/self->listSize;
     float stdWTA=computeStdWTA(self,avgWTA);
 
     char avgWTAString[16],avgWaitingString[16],stdWTAString[16],CPUUtilString[16];
-    //snprintf(CPUUtilString, sizeof(CPUUtilString), "%.2f", CPUUtil);
+    snprintf(CPUUtilString, sizeof(CPUUtilString), "%.2f", CPUUtil);
     snprintf(avgWTAString, sizeof(avgWTAString), "%.2f", avgWTA);
     snprintf(avgWaitingString, sizeof(avgWaitingString), "%.2f", avgWaiting);
     snprintf(stdWTAString, sizeof(stdWTAString), "%.2f", stdWTA);
 
 
-    //char* CPUUtilizationMessage=concat("CPU utilization = ",CPUUtilString);  
+    char* CPUUtilizationMessage=concat("CPU utilization = ",CPUUtilString);  
     char* avgWTAMessage=concat("Avg WTA = ",avgWTAString);
     char* avgWaitingMessage=concat("Avg Waiting = ",avgWaitingString);
     char* stdWTAMessage=concat("Std WTA = ",stdWTAString);
 
-    //strcat(CPUUtilizationMessage,"%%\n");
-    strcat(avgWTAMessage,"\n");
-    strcat(avgWaitingMessage,"\n");
-    strcat(stdWTAMessage,"\n");
+    char* CPUUtilizationMessageN=concat(CPUUtilizationMessage,"\n");free(CPUUtilizationMessage);
+    char* avgWTAMessageN=concat(avgWTAMessage,"\n");free(avgWTAMessage);
+    char* avgWaitingMessageN=concat(avgWaitingMessage,"\n");free(avgWaitingMessage);
+    char* stdWTAMessageN=concat(stdWTAMessage,"\n");free(stdWTAMessage);
 
-    //fputs(CPUUtilizationMessage, self->perfFilePtr );free(CPUUtilizationMessage);
-    fputs(avgWTAMessage, self->perfFilePtr );free(avgWTAMessage);
-    fputs(avgWaitingMessage, self->perfFilePtr );free(avgWaitingMessage);
-    fputs(stdWTAMessage, self->perfFilePtr);free(stdWTAMessage);
+    fputs(CPUUtilizationMessageN, self->perfFilePtr );free(CPUUtilizationMessageN);
+    fputs(avgWTAMessageN, self->perfFilePtr );free(avgWTAMessageN);
+    fputs(avgWaitingMessageN, self->perfFilePtr );free(avgWaitingMessageN);
+    fputs(stdWTAMessageN, self->perfFilePtr);free(stdWTAMessageN);
 }

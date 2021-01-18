@@ -184,10 +184,10 @@ int power(int base, int exp)
 }
 
 //function to find square root of a given number (from geeks for geeks)
-float findSQRT(int number)
+float findSQRT(float number)
 {
-    int start = 0, end = number;
-    int mid;
+    float start = 0, end = number;
+    float mid;
  
     // To store the answer
     float ans;
