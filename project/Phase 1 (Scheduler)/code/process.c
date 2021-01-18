@@ -3,12 +3,6 @@
 int burstTime,startTime,waitingTime, Q_ID_SMP;
 
 
-// void preemptMe(int signum)
-// {
-
-//  signal(SIGSTOP, preemptMe);  
-// }
-
 void recieveProcessParameters(int Q_ID_SMP)
 {
     ProcessParametersBuff messageReceived;
@@ -50,7 +44,6 @@ int main(int agrc, char * argv[])
     printf("I am a process that got forked by the scheduler with these parameters: \n");
     printf("%d,%d,%d\n",burstTime,startTime,waitingTime);
     signal(SIGCONT, continueMe);
-    // signal(SIGSTOP, preemptMe);
     initClk();
     
     // the loop continues till I am either finished or preempted

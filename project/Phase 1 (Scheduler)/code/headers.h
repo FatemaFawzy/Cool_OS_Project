@@ -25,6 +25,7 @@ typedef short bool;
 #define Q_ID_SMP_KEY 99
 #define SEM_ID_PG_TO_SCH 44
 #define SEM_ID_PG_TO_SCH_FIN 88
+#define MAX_SIZE 1000
 
 typedef struct
 {
@@ -57,8 +58,6 @@ union Semun
     struct seminfo *__buf; /* buffer for IPC_INFO */
     void *__pad;
 };
-
-#define MAX_SIZE 1000
 
 typedef enum {PRIORITIZE_TIME,PRIORITIZE_PRIORITY} PriorityPurpose; 
 typedef enum {STARTED,RESUMED,STOPPED,FINISHED} ProcessState; 

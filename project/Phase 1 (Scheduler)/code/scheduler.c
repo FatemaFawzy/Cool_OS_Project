@@ -3,7 +3,7 @@
 #include "queue.c"
 #include "logger.c"
 #include "memory.c"
-#define PROCESSES_NUMBER 5
+
 
 struct Hash* PCB;
 struct PriorityQueue* queueHPF;
@@ -14,7 +14,7 @@ bool finish = false;
 struct Queue* waitingList;
 int sem1, sem2, Q_ID_SMP, shmid;
 
-void insertProcessPriorityQueue(struct PriorityQueue* queue,processData* process,int clock)
+/*void insertProcessPriorityQueue(struct PriorityQueue* queue,processData* process,int clock)
 {
     if(process != NULL && process->arrivalTime == clock)
     {
@@ -31,7 +31,7 @@ void insertProcessQueue(struct Queue* queue,processData* process,int clock)
         //printf("\nat t=%d: Process with ID %d has arrived!\n",clock,process->id);
         enqueueQueue(queue,process);    
     }
-}
+}*/
 
 // Highest  First
 /*bool doHPF(int clock,struct PriorityQueue* queue,struct Hash* PCB)
@@ -160,6 +160,10 @@ void insertProcessQueue(struct Queue* queue,processData* process,int clock)
 
     return false;
 }*/
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////---------------------INTER PROCESS COMMUNICATION---------------------//////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
 processData receiveNewProcess(int shmid)
 {
     processData *shmaddr = shmat(shmid, (void *)0, 0);
@@ -183,50 +187,6 @@ schedulingType receiveSchedulingType(int INITIAL_MSG_Q_ID)
 
     return messageReceived.initialSchedulingData;
 }
-void newProcessArrived(int signum)
-{
-    printf("Entered sig handler in scheduler \n");
-    processData newProcess = receiveNewProcess(shmid);
-    up(sem1);
-    processData* temp = (processData*)malloc(sizeof(processData));
-    temp->id = newProcess.id;
-    temp->arrivalTime = newProcess.arrivalTime;
-    temp->runningTime = newProcess.runningTime;
-    temp->priority = newProcess.priority;
-    temp->lastBlockingTime = newProcess.arrivalTime;
-    temp->memorySize = newProcess.memorySize;
-    temp->waitingTime = newProcess.waitingTime;
-    temp->remainingTime = newProcess.runningTime;
-    temp->idleTime = newProcess.idleTime;
-    temp->startTime = newProcess.startTime;
-    printf("Received %d %d %d %d \n", temp->id, temp->arrivalTime, temp->runningTime, temp->priority);
-    printf("--------------- \n");
-    switch (type)
-    {
-    case HPF:
-        enqueuePriorityQueue(queueHPF,temp);
-        break;
-    case STRN:
-        enqueuePriorityQueue(queueSRTN,temp);
-        printf("Rem time of front %d\n", frontPriorityQueue(queueSRTN)->remainingTime);
-        printf("Rem of new process %d \n",temp->remainingTime);
-        printf("added new process to queue \n");
-        printf("front now is a process with id %d \n", frontPriorityQueue(queueSRTN)->id);
-        break;
-    case RR:
-        enqueueQueue(queueRR, temp);
-        break;
-    }
-    printf("show up now \n");
-    up(sem2);
-    signal(SIGUSR1, newProcessArrived);   
-}
-void noMoreProcesses(int signum)
-{
-    finish = true;
-    printf("No more processes \n");
-    signal(SIGUSR2, noMoreProcesses);
-}
 
 void sendProcessParameters(int Q_ID_SMP, int burstTime, int startTime,int waitingTime,int processID)
 {
@@ -245,6 +205,11 @@ void sendProcessParameters(int Q_ID_SMP, int burstTime, int startTime,int waitin
     if (send_val == -1)
         perror("Errror in sending the initial data to the scheduler.");
 }
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////--------------------------AUXILIARY FUNCTIONS----------------------////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
 int forkANewProcess(processData* p)
 {
     int newProcessPID = fork();
@@ -262,6 +227,32 @@ int forkANewProcess(processData* p)
         return newProcessPID;
     }
 }
+processData* checkOnWaitingList(struct Queue* waitingList, processData* justDequeued)
+{
+
+    int j = 0;
+    while(frontQueue(waitingList)->memorySize > justDequeued->memorySize && j != waitingList->size)
+    {
+        enqueueQueue(waitingList, dequeueQueue(waitingList));
+        j++;
+    }
+    if (j != waitingList->size) //found a process fitting in memory
+    {
+        processData* canRunNow = dequeueQueue(waitingList);
+        canRunNow->waitingTime += (getClk() - canRunNow->enteredWaitingListTime);
+        return canRunNow;
+    }
+    else
+    {
+        return NULL;
+    }
+    
+}
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////---------------------HIGHEST PRIORITY FIRST--------------------------//////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
 void highestPriorityFirst(int Q_ID_SMP,Logger *logger,Memory *memory)
 {
     int stat_loc;
@@ -281,6 +272,11 @@ void highestPriorityFirst(int Q_ID_SMP,Logger *logger,Memory *memory)
     deallocate(memory,p->id);
     hashRemove(PCB, p->id); //Remove the finished process from the PCB
 }
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+////////////---------------------SHORTEST REMAINING TIME NEXT--------------------////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
 processData* findProcessToRunSTRN(int Q_ID_SMP, Memory* memory, Logger* logger, int newProcessPID, MemoryLocation* address)
 {
     while (!hashFind(PCB, frontPriorityQueue(queueSRTN)->id) && ((address = allocate(memory,frontPriorityQueue(queueSRTN)->id,frontPriorityQueue(queueSRTN)->memorySize)) == NULL))
@@ -312,27 +308,6 @@ processData* findProcessToRunSTRN(int Q_ID_SMP, Memory* memory, Logger* logger, 
     }
     
     return p;
-}
-processData* checkOnWaitingList(struct Queue* waitingList, processData* justDequeued)
-{
-
-    int j = 0;
-    while(frontQueue(waitingList)->memorySize > justDequeued->memorySize && j != waitingList->size)
-    {
-        enqueueQueue(waitingList, dequeueQueue(waitingList));
-        j++;
-    }
-    if (j != waitingList->size) //found a process fitting in memory
-    {
-        processData* canRunNow = dequeueQueue(waitingList);
-        canRunNow->waitingTime += (getClk() - canRunNow->enteredWaitingListTime);
-        return canRunNow;
-    }
-    else
-    {
-        return NULL;
-    }
-    
 }
 void shortestRemainingTimeNext(int Q_ID_SMP,Memory* memory, Logger* logger)
 {
@@ -400,6 +375,11 @@ void shortestRemainingTimeNext(int Q_ID_SMP,Memory* memory, Logger* logger)
         printf("Context switching occurred to pid = %d. \n",frontPriorityQueue(queueSRTN)->id);
     }
 }
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////--------------------------ROUND ROBIN--------------------------------//////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
 processData* findProcessToRunRR(int Q_ID_SMP, Memory* memory, Logger* logger, int newProcessPID, MemoryLocation* address)
 {
     while (!hashFind(PCB, frontQueue(queueRR)->id) && ((address = allocate(memory,frontQueue(queueRR)->id,frontQueue(queueRR)->memorySize)) == NULL))
@@ -513,10 +493,64 @@ void roundRobin(int Q_ID_SMP,Memory* memory, Logger* logger, int quantum)
     }
 
 }
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////-------------------------SIGNAL HANDLERS--------------------------/////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
+void newProcessArrived(int signum)
+{
+    printf("Entered sig handler in scheduler \n");
+    processData newProcess = receiveNewProcess(shmid);
+    up(sem1);
+    processData* temp = (processData*)malloc(sizeof(processData));
+    temp->id = newProcess.id;
+    temp->arrivalTime = newProcess.arrivalTime;
+    temp->runningTime = newProcess.runningTime;
+    temp->priority = newProcess.priority;
+    temp->lastBlockingTime = newProcess.arrivalTime;
+    temp->memorySize = newProcess.memorySize;
+    temp->waitingTime = newProcess.waitingTime;
+    temp->remainingTime = newProcess.runningTime;
+    temp->idleTime = newProcess.idleTime;
+    temp->startTime = newProcess.startTime;
+    printf("Received %d %d %d %d \n", temp->id, temp->arrivalTime, temp->runningTime, temp->priority);
+    printf("--------------- \n");
+    switch (type)
+    {
+    case HPF:
+        enqueuePriorityQueue(queueHPF,temp);
+        break;
+    case STRN:
+        enqueuePriorityQueue(queueSRTN,temp);
+        printf("Rem time of front %d\n", frontPriorityQueue(queueSRTN)->remainingTime);
+        printf("Rem of new process %d \n",temp->remainingTime);
+        printf("added new process to queue \n");
+        printf("front now is a process with id %d \n", frontPriorityQueue(queueSRTN)->id);
+        break;
+    case RR:
+        enqueueQueue(queueRR, temp);
+        break;
+    }
+    printf("show up now \n");
+    up(sem2);
+    signal(SIGUSR1, newProcessArrived);   
+}
+void noMoreProcesses(int signum)
+{
+    finish = true;
+    printf("No more processes \n");
+    signal(SIGUSR2, noMoreProcesses);
+}
 void cleanUp(int signum)
 {
     msgctl(Q_ID_SMP, IPC_RMID, (struct msqid_ds *)0);
 }
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+//////////////////--------------------------MAIN CODE--------------------------//////////////////////
+/////////////////////////////////////////////////////////////////////////////////////////////////////
+
 int main(int argc, char * argv[])
 {
     signal(SIGUSR1, newProcessArrived);
@@ -570,7 +604,6 @@ int main(int argc, char * argv[])
         exit(-1);
     }
 
-    //schedulingAlgorithm type = RR;
     schedulingType s = receiveSchedulingType(INITIAL_MSG_Q_ID);
     type = s.algo;
     int quantum = s.quantum;
